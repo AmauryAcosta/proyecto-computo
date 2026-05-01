@@ -1,28 +1,49 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import api from "../api/axios";
 
 const labelColor = "rgba(59, 71, 54, 0.85)";
 
 export default function Login() {
   const { login } = useAuth();
   const navigate = useNavigate();
-  const [form, setForm] = useState({ username: "", password: "" });
+  const [form, setForm] = useState({ usuario: "", password: "" });
   const [error, setError] = useState(null);
   const [pressing, setPressing] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!form.username || !form.password) {
+    if (!form.usuario || !form.password) {
       setError("Completa todos los campos");
       return;
     }
-    login({ username: form.username }, "token-temporal");
-    navigate("/dashboard");
+    setError(null);
+    setLoading(true);
+
+    try {
+      const { data } = await api.post("/auth/login", {
+        usuario: form.usuario,
+        password: form.password,
+      });
+
+      localStorage.setItem("token", data.token);
+
+      const { data: meData } = await api.get("/auth/me");
+
+      login(meData.item ?? meData, data.token);
+      navigate("/dashboard");
+    } catch (err) {
+      setError(err.response?.data?.message || "Usuario o contraseña incorrectos");
+      localStorage.removeItem("token");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -56,7 +77,7 @@ export default function Login() {
           <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
             <label style={{ fontSize: "13px", fontWeight: "500", color: labelColor }}>Usuario</label>
             <input
-              type="text" name="username" value={form.username} onChange={handleChange} placeholder="Admin"
+              type="text" name="usuario" value={form.usuario} onChange={handleChange} placeholder="usuario"
               style={{ border: "1px solid #d1d5db", borderRadius: "8px", padding: "9px 12px", fontSize: "14px", outline: "none", width: "100%", boxSizing: "border-box", backgroundColor: "#F3F2F7" }}
             />
           </div>
@@ -71,6 +92,7 @@ export default function Login() {
 
           <button
             type="submit"
+            disabled={loading}
             onMouseDown={() => setPressing(true)}
             onMouseUp={() => setPressing(false)}
             onMouseLeave={() => setPressing(false)}
@@ -80,11 +102,12 @@ export default function Login() {
               border: "1px solid #d1d5db",
               borderRadius: "8px", padding: "10px",
               fontSize: "14px", fontWeight: "600",
-              cursor: "pointer", marginTop: "4px",
+              cursor: loading ? "not-allowed" : "pointer",
+              marginTop: "4px", opacity: loading ? 0.6 : 1,
               transition: "background-color 0.15s, color 0.15s",
             }}
           >
-            Iniciar Sesión
+            {loading ? "Ingresando..." : "Iniciar Sesión"}
           </button>
         </form>
 
