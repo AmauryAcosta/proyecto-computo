@@ -8,6 +8,7 @@ const labelColor = "rgba(59, 71, 54, 0.85)";
 export default function Login() {
   const { login } = useAuth();
   const navigate = useNavigate();
+
   const [form, setForm] = useState({ usuario: "", password: "" });
   const [error, setError] = useState(null);
   const [pressing, setPressing] = useState(false);
@@ -19,28 +20,29 @@ export default function Login() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!form.usuario || !form.password) {
+
+    if (!form.usuario.trim() || !form.password.trim()) {
       setError("Completa todos los campos");
       return;
     }
+
     setError(null);
     setLoading(true);
 
     try {
       const { data } = await api.post("/auth/login", {
-        usuario: form.usuario,
-        password: form.password,
+        usuario: form.usuario.trim().toLowerCase(),
+        password: form.password.trim(),
       });
 
-      localStorage.setItem("token", data.token);
+      login(data.user, data.token);
 
-      const { data: meData } = await api.get("/auth/me");
+      navigate("/dashboard", { replace: true }); 
 
-      login(meData.item ?? meData, data.token);
-      navigate("/dashboard");
     } catch (err) {
-      setError(err.response?.data?.message || "Usuario o contraseña incorrectos");
-      localStorage.removeItem("token");
+      setError(
+        err.response?.data?.message || "Usuario o contraseña incorrectos"
+      );
     } finally {
       setLoading(false);
     }
@@ -64,29 +66,60 @@ export default function Login() {
       }}>
 
         <div style={{ display: "flex", justifyContent: "center", marginBottom: "28px" }}>
-          <img src="/logo.png" alt="ByteStore logo" style={{ width: "340px", height: "auto", display: "block" }} />
+          <img src="/logo.png" alt="ByteStore logo" style={{ width: "340px" }} />
         </div>
 
         {error && (
-          <div style={{ backgroundColor: "#fef2f2", border: "1px solid #fca5a5", color: "#dc2626", borderRadius: "8px", padding: "10px 14px", fontSize: "13px", marginBottom: "16px" }}>
+          <div style={{
+            backgroundColor: "#fef2f2",
+            border: "1px solid #fca5a5",
+            color: "#dc2626",
+            borderRadius: "8px",
+            padding: "10px 14px",
+            fontSize: "13px",
+            marginBottom: "16px"
+          }}>
             {error}
           </div>
         )}
 
         <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
-          <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+
+          <div>
             <label style={{ fontSize: "13px", fontWeight: "500", color: labelColor }}>Usuario</label>
             <input
-              type="text" name="usuario" value={form.usuario} onChange={handleChange} placeholder="usuario"
-              style={{ border: "1px solid #d1d5db", borderRadius: "8px", padding: "9px 12px", fontSize: "14px", outline: "none", width: "100%", boxSizing: "border-box", backgroundColor: "#F3F2F7" }}
+              type="text"
+              name="usuario"
+              value={form.usuario}
+              onChange={handleChange}
+              placeholder="usuario"
+              style={{
+                border: "1px solid #d1d5db",
+                borderRadius: "8px",
+                padding: "9px 12px",
+                fontSize: "14px",
+                width: "100%",
+                backgroundColor: "#F3F2F7"
+              }}
             />
           </div>
 
-          <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+          <div>
             <label style={{ fontSize: "13px", fontWeight: "500", color: labelColor }}>Contraseña</label>
             <input
-              type="password" name="password" value={form.password} onChange={handleChange} placeholder="••••••••"
-              style={{ border: "1px solid #d1d5db", borderRadius: "8px", padding: "9px 12px", fontSize: "14px", outline: "none", width: "100%", boxSizing: "border-box", backgroundColor: "#F3F2F7" }}
+              type="password"
+              name="password"
+              value={form.password}
+              onChange={handleChange}
+              placeholder="••••••••"
+              style={{
+                border: "1px solid #d1d5db",
+                borderRadius: "8px",
+                padding: "9px 12px",
+                fontSize: "14px",
+                width: "100%",
+                backgroundColor: "#F3F2F7"
+              }}
             />
           </div>
 
@@ -100,11 +133,11 @@ export default function Login() {
               backgroundColor: pressing ? "#244242" : "#F3F2F7",
               color: pressing ? "white" : "#111827",
               border: "1px solid #d1d5db",
-              borderRadius: "8px", padding: "10px",
-              fontSize: "14px", fontWeight: "600",
+              borderRadius: "8px",
+              padding: "10px",
+              fontWeight: "600",
               cursor: loading ? "not-allowed" : "pointer",
-              marginTop: "4px", opacity: loading ? 0.6 : 1,
-              transition: "background-color 0.15s, color 0.15s",
+              opacity: loading ? 0.6 : 1,
             }}
           >
             {loading ? "Ingresando..." : "Iniciar Sesión"}
