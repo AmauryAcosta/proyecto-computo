@@ -7,7 +7,7 @@ import Input from "../../components/ui/Input";
 import Spinner from "../../components/ui/Spinner";
 import { useToast } from "../../components/ui/Toast";
 
-const emptyForm = { usuario: "", password: "", nombre: "", apellido: "", email: "", roleId: "" };
+const emptyForm = { usuario: "", password: "", confirmar: "", nombre: "", apellido: "", email: "", roleId: "" };
 
 function Avatar({ nombre }) {
   const initials = nombre?.slice(0, 2).toUpperCase() || "??";
@@ -20,7 +20,7 @@ function Avatar({ nombre }) {
   );
 }
 
-export default function UserList({ onAction }) {
+export default function UserList() {
   const toast = useToast();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -50,13 +50,11 @@ export default function UserList({ onAction }) {
 
   useEffect(() => { fetchUsers(); }, [page]);
 
-  useEffect(() => { fetchUsers(); }, [page]);
-
-useEffect(() => {
-  const handler = () => handleNew();
-  document.addEventListener("openNewUser", handler);
-  return () => document.removeEventListener("openNewUser", handler);
-}, []);
+  useEffect(() => {
+    const handler = () => handleNew();
+    document.addEventListener("openNewUser", handler);
+    return () => document.removeEventListener("openNewUser", handler);
+  }, []);
 
   const activos = users.filter(u => u.activo).length;
   const inactivos = users.filter(u => !u.activo).length;
@@ -80,7 +78,7 @@ useEffect(() => {
 
   const handleEdit = (user) => {
     setEditingUser(user);
-    setForm({ usuario: user.usuario, password: "", nombre: user.nombre, apellido: user.apellido || "", email: user.email, roleId: user.roleId });
+    setForm({ usuario: user.usuario, password: "", confirmar: "", nombre: user.nombre, apellido: user.apellido || "", email: user.email, roleId: user.roleId });
     setFormError({});
     setModalOpen(true);
   };
@@ -99,6 +97,7 @@ useEffect(() => {
     if (Object.keys(errors).length > 0) { setFormError(errors); return; }
     try {
       const payload = { ...form };
+      delete payload.confirmar; // el backend no espera este campo
       if (editingUser && !payload.password) delete payload.password;
       if (editingUser) {
         await updateUser(editingUser.id, payload);
@@ -135,16 +134,18 @@ useEffect(() => {
     }
   };
 
-  const columns = [{
-    key: "usuario", label: "Usuario",
+  const columns = [
+    {
+      key: "usuario", label: "Usuario",
       render: (row) => (
         <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
           <Avatar nombre={row.nombre} />
           <span style={{ fontWeight: "500" }}>{row.usuario}</span>
         </div>
       )
-    },{ 
-      key: "email", label: "Email" }, {
+    },
+    { key: "email", label: "Email" },
+    {
       key: "role", label: "Rol",
       render: (row) => row.role ? (
         <span style={{ padding: "2px 10px", borderRadius: "999px", fontSize: "12px", fontWeight: "600", background: "#dcfce7", color: "#15803d" }}>
@@ -173,11 +174,11 @@ useEffect(() => {
 
   const totalPages = Math.ceil(total / limit);
   const f = (field) => (e) => setForm({ ...form, [field]: e.target.value });
-
   const selectStyle = { border: "1px solid #d1d5db", borderRadius: "8px", padding: "7px 12px", fontSize: "13px", color: "#374151", backgroundColor: "white", cursor: "pointer" };
 
   return (
     <div>
+      {/* Card stats */}
       <div style={{ background: "linear-gradient(135deg, #1b4332, #2d6a4f)", borderRadius: "12px", padding: "20px 24px", display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px", color: "white" }}>
         <div>
           <h3 style={{ fontSize: "18px", fontWeight: "700", margin: 0 }}>Gestión de Usuario</h3>
@@ -195,10 +196,11 @@ useEffect(() => {
         </div>
       </div>
 
+      {/* Buscador + filtros */}
       <div style={{ display: "flex", gap: "12px", alignItems: "center", marginBottom: "16px", flexWrap: "wrap" }}>
         <div style={{ display: "flex", alignItems: "center", gap: "8px", border: "1px solid #d1d5db", borderRadius: "8px", padding: "7px 12px", background: "white", flex: 1, minWidth: "160px" }}>
           <span style={{ color: "#9ca3af" }}>🔍</span>
-          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Buscar Usuario" style={{ border: "none", outline: "none", fontSize: "13px", color: "#374151", width: "50%", background: "transparent" }} />
+          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Buscar Usuario" style={{ border: "none", outline: "none", fontSize: "13px", color: "#374151", width: "100%", background: "transparent" }} />
         </div>
         <select value={filterRole} onChange={e => setFilterRole(e.target.value)} style={selectStyle}>
           <option value="">Todos los roles</option>
@@ -210,14 +212,16 @@ useEffect(() => {
           <option value="true">Activo</option>
           <option value="false">Inactivo</option>
         </select>
-        
       </div>
+
+      {/* Tabla */}
       {loading ? (
         <div style={{ padding: "40px", display: "flex", justifyContent: "center" }}><Spinner /></div>
       ) : (
         <Table columns={columns} data={filtered} />
       )}
 
+      {/* Paginación */}
       {totalPages > 1 && (
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "12px", padding: "0 4px" }}>
           <span style={{ fontSize: "13px", color: "#40916c" }}>Mostrando {(page-1)*limit+1} - {Math.min(page*limit, total)} de {total} Usuarios</span>
@@ -230,16 +234,21 @@ useEffect(() => {
           </div>
         </div>
       )}
+
+      {/* Modal */}
       <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} title={editingUser ? "Editar Usuario - ByteStore" : "Nuevo Usuario - ByteStore"}>
         <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
-            <Input label="Nombre Completo" name="nombre" value={form.nombre} onChange={f("nombre")} placeholder="Ej. Juan Perez" error={formError.nombre} />
-            <Input label="Usuario" name="usuario" value={form.usuario} onChange={f("usuario")} placeholder="Juan P" error={formError.usuario} />
+            <Input label="Nombre" name="nombre" value={form.nombre} onChange={f("nombre")} placeholder="Ej. Juan" error={formError.nombre} />
+            <Input label="Apellido" name="apellido" value={form.apellido} onChange={f("apellido")} placeholder="Ej. Perez" />
           </div>
-          <Input label="Email" name="email" type="email" value={form.email} onChange={f("email")} placeholder="juanp@outlook.com" error={formError.email} />
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+            <Input label="Usuario" name="usuario" value={form.usuario} onChange={f("usuario")} placeholder="JuanP" error={formError.usuario} />
+            <Input label="Email" name="email" type="email" value={form.email} onChange={f("email")} placeholder="juanp@outlook.com" error={formError.email} />
+          </div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
             <Input label={editingUser ? "Nueva contraseña (opcional)" : "Contraseña"} name="password" type="password" value={form.password} onChange={f("password")} placeholder="••••••••" error={formError.password} />
-            <Input label="Confirmar" name="confirmar" type="password" value={form.confirmar || ""} onChange={f("confirmar")} placeholder="••••••••" />
+            <Input label="Confirmar" name="confirmar" type="password" value={form.confirmar} onChange={f("confirmar")} placeholder="••••••••" />
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
             <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
