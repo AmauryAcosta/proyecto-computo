@@ -7,9 +7,20 @@ import Input from "../../components/ui/Input";
 import Spinner from "../../components/ui/Spinner";
 import { useToast } from "../../components/ui/Toast";
 
-const emptyForm = { usuario: "", password: "", nombre: "", apellido: "", email: "", roleId: "role_admin" };
+const emptyForm = { usuario: "", password: "", nombre: "", apellido: "", email: "", roleId: "" };
 
-export default function UserList() {
+function Avatar({ nombre }) {
+  const initials = nombre?.slice(0, 2).toUpperCase() || "??";
+  const colors = ["#a8d5ba", "#b5c4e8", "#f4c7c3", "#c8b8e8", "#f9d4a0"];
+  const color = colors[nombre?.charCodeAt(0) % colors.length] || "#a8d5ba";
+  return (
+    <div style={{ width: "32px", height: "32px", borderRadius: "50%", background: color, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "12px", fontWeight: "700", color: "#374151", flexShrink: 0 }}>
+      {initials}
+    </div>
+  );
+}
+
+export default function UserList({ onAction }) {
   const toast = useToast();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -20,6 +31,8 @@ export default function UserList() {
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const [search, setSearch] = useState("");
+  const [filterRole, setFilterRole] = useState("");
+  const [filterStatus, setFilterStatus] = useState("");
   const limit = 10;
 
   const fetchUsers = async () => {
@@ -37,14 +50,26 @@ export default function UserList() {
 
   useEffect(() => { fetchUsers(); }, [page]);
 
+  useEffect(() => { fetchUsers(); }, [page]);
+
+useEffect(() => {
+  const handler = () => handleNew();
+  document.addEventListener("openNewUser", handler);
+  return () => document.removeEventListener("openNewUser", handler);
+}, []);
+
   const activos = users.filter(u => u.activo).length;
   const inactivos = users.filter(u => !u.activo).length;
 
-  const filtered = users.filter(u =>
-    u.usuario?.toLowerCase().includes(search.toLowerCase()) ||
-    u.email?.toLowerCase().includes(search.toLowerCase()) ||
-    u.nombre?.toLowerCase().includes(search.toLowerCase())
-  );
+  const filtered = users.filter(u => {
+    const matchSearch = !search ||
+      u.usuario?.toLowerCase().includes(search.toLowerCase()) ||
+      u.email?.toLowerCase().includes(search.toLowerCase()) ||
+      u.nombre?.toLowerCase().includes(search.toLowerCase());
+    const matchRole = !filterRole || u.role === filterRole;
+    const matchStatus = !filterStatus || String(u.activo) === filterStatus;
+    return matchSearch && matchRole && matchStatus;
+  });
 
   const handleNew = () => {
     setEditingUser(null);
@@ -110,19 +135,27 @@ export default function UserList() {
     }
   };
 
-  const columns = [
-    { key: "usuario", label: "Usuario" },
-    { key: "nombre", label: "Nombre", render: (row) => `${row.nombre} ${row.apellido || ""}` },
-    { key: "email", label: "Email" },
-    { key: "role", label: "Rol" },
+  const columns = [{
+    key: "usuario", label: "Usuario",
+      render: (row) => (
+        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+          <Avatar nombre={row.nombre} />
+          <span style={{ fontWeight: "500" }}>{row.usuario}</span>
+        </div>
+      )
+    },{ 
+      key: "email", label: "Email" }, {
+      key: "role", label: "Rol",
+      render: (row) => row.role ? (
+        <span style={{ padding: "2px 10px", borderRadius: "999px", fontSize: "12px", fontWeight: "600", background: "#dcfce7", color: "#15803d" }}>
+          {row.role}
+        </span>
+      ) : "—"
+    },
     {
       key: "activo", label: "Estado",
       render: (row) => (
-        <span style={{
-          padding: "2px 10px", borderRadius: "999px", fontSize: "12px", fontWeight: "600",
-          background: row.activo ? "#dcfce7" : "#fee2e2",
-          color: row.activo ? "#15803d" : "#dc2626",
-        }}>
+        <span style={{ padding: "2px 10px", borderRadius: "999px", fontSize: "12px", fontWeight: "600", background: row.activo ? "#dcfce7" : "#fee2e2", color: row.activo ? "#15803d" : "#dc2626" }}>
           {row.activo ? "Activo" : "Inactivo"}
         </span>
       )
@@ -132,9 +165,6 @@ export default function UserList() {
       render: (row) => (
         <div style={{ display: "flex", gap: "8px" }}>
           <Button variant="secondary" onClick={() => handleEdit(row)}>Editar</Button>
-          <Button variant="secondary" onClick={() => handleToggle(row)}>
-            {row.activo ? "Desactivar" : "Activar"}
-          </Button>
           <Button variant="danger" onClick={() => handleDelete(row)}>Eliminar</Button>
         </div>
       )
@@ -144,28 +174,14 @@ export default function UserList() {
   const totalPages = Math.ceil(total / limit);
   const f = (field) => (e) => setForm({ ...form, [field]: e.target.value });
 
+  const selectStyle = { border: "1px solid #d1d5db", borderRadius: "8px", padding: "7px 12px", fontSize: "13px", color: "#374151", backgroundColor: "white", cursor: "pointer" };
+
   return (
-    // TODO: envolver en AppLayout cuando Amaury lo suba
-    <div style={{ padding: "24px", background: "#f0fdf4", minHeight: "100vh" }}>
-
-      {/* Header */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
-        <h1 style={{ fontSize: "22px", fontWeight: "700", color: "#1b4332" }}>Usuarios</h1>
-        <Button onClick={handleNew}>+ Nuevo Usuario</Button>
-      </div>
-
-      {/* Card stats */}
-      <div style={{
-        background: "linear-gradient(135deg, #1b4332, #2d6a4f)",
-        borderRadius: "12px", padding: "20px 24px",
-        display: "flex", justifyContent: "space-between", alignItems: "center",
-        marginBottom: "20px", color: "white",
-      }}>
+    <div>
+      <div style={{ background: "linear-gradient(135deg, #1b4332, #2d6a4f)", borderRadius: "12px", padding: "20px 24px", display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px", color: "white" }}>
         <div>
-          <h2 style={{ fontSize: "18px", fontWeight: "700", margin: 0 }}>Gestión de Usuario</h2>
-          <p style={{ fontSize: "13px", opacity: 0.8, margin: "4px 0 0" }}>
-            {total} usuarios registrados · {activos} activos · {inactivos} inactivos
-          </p>
+          <h3 style={{ fontSize: "18px", fontWeight: "700", margin: 0 }}>Gestión de Usuario</h3>
+          <p style={{ fontSize: "13px", opacity: 0.8, margin: "4px 0 0" }}>{total} usuarios registrados · {activos} activos · {inactivos} inactivos</p>
         </div>
         <div style={{ display: "flex", gap: "12px" }}>
           <div style={{ background: "rgba(255,255,255,0.15)", borderRadius: "8px", padding: "10px 20px", textAlign: "center" }}>
@@ -179,37 +195,41 @@ export default function UserList() {
         </div>
       </div>
 
-      {/* Buscador */}
-      <div style={{ marginBottom: "16px" }}>
-        <Input
-          name="search"
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          placeholder="🔍 Buscar usuario..."
-        />
-      </div>
-
-      {/* Tabla */}
-      {loading ? (
-        <div style={{ padding: "40px", display: "flex", justifyContent: "center" }}>
-          <Spinner />
+      <div style={{ display: "flex", gap: "12px", alignItems: "center", marginBottom: "16px", flexWrap: "wrap" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "8px", border: "1px solid #d1d5db", borderRadius: "8px", padding: "7px 12px", background: "white", flex: 1, minWidth: "160px" }}>
+          <span style={{ color: "#9ca3af" }}>🔍</span>
+          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Buscar Usuario" style={{ border: "none", outline: "none", fontSize: "13px", color: "#374151", width: "50%", background: "transparent" }} />
         </div>
+        <select value={filterRole} onChange={e => setFilterRole(e.target.value)} style={selectStyle}>
+          <option value="">Todos los roles</option>
+          <option value="ADMIN">ADMIN</option>
+          <option value="USER">USER</option>
+        </select>
+        <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} style={selectStyle}>
+          <option value="">Todos los estados</option>
+          <option value="true">Activo</option>
+          <option value="false">Inactivo</option>
+        </select>
+        
+      </div>
+      {loading ? (
+        <div style={{ padding: "40px", display: "flex", justifyContent: "center" }}><Spinner /></div>
       ) : (
         <Table columns={columns} data={filtered} />
       )}
 
-      {/* Paginación */}
       {totalPages > 1 && (
-        <div style={{ display: "flex", justifyContent: "center", gap: "8px", marginTop: "16px" }}>
-          <Button variant="secondary" disabled={page === 1} onClick={() => setPage(p => p - 1)}>← Anterior</Button>
-          <span style={{ color: "#374151", alignSelf: "center", fontSize: "13px" }}>
-            Página {page} de {totalPages}
-          </span>
-          <Button variant="secondary" disabled={page === totalPages} onClick={() => setPage(p => p + 1)}>Siguiente →</Button>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "12px", padding: "0 4px" }}>
+          <span style={{ fontSize: "13px", color: "#40916c" }}>Mostrando {(page-1)*limit+1} - {Math.min(page*limit, total)} de {total} Usuarios</span>
+          <div style={{ display: "flex", gap: "4px" }}>
+            <button disabled={page===1} onClick={() => setPage(p=>p-1)} style={{ ...selectStyle, padding: "5px 10px" }}>‹</button>
+            {Array.from({ length: totalPages }, (_, i) => (
+              <button key={i} onClick={() => setPage(i+1)} style={{ ...selectStyle, padding: "5px 10px", background: page===i+1 ? "#1b4332" : "white", color: page===i+1 ? "white" : "#374151" }}>{i+1}</button>
+            ))}
+            <button disabled={page===totalPages} onClick={() => setPage(p=>p+1)} style={{ ...selectStyle, padding: "5px 10px" }}>›</button>
+          </div>
         </div>
       )}
-
-      {/* Modal */}
       <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} title={editingUser ? "Editar Usuario - ByteStore" : "Nuevo Usuario - ByteStore"}>
         <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
@@ -223,26 +243,24 @@ export default function UserList() {
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
             <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-              <label style={{ fontSize: "13px", fontWeight: "500", color: "#6ee7b7" }}>Rol</label>
-              <select value={form.roleId} onChange={f("roleId")}
-                style={{ background: "#0f3d3d", border: "1px solid #065f46", borderRadius: "6px", padding: "8px 12px", color: "white", fontSize: "14px" }}>
+              <label style={{ fontSize: "13px", fontWeight: "500", color: "#374151" }}>Rol</label>
+              <select value={form.roleId} onChange={f("roleId")} style={{ ...selectStyle, width: "100%" }}>
                 <option value="">Seleccionar rol</option>
                 <option value="role_admin">ADMIN</option>
                 <option value="role_user">USER</option>
               </select>
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-              <label style={{ fontSize: "13px", fontWeight: "500", color: "#6ee7b7" }}>Estado</label>
-              <select value={form.activo ?? true} onChange={e => setForm({ ...form, activo: e.target.value === "true" })}
-                style={{ background: "#0f3d3d", border: "1px solid #065f46", borderRadius: "6px", padding: "8px 12px", color: "white", fontSize: "14px" }}>
+              <label style={{ fontSize: "13px", fontWeight: "500", color: "#374151" }}>Estado</label>
+              <select value={form.activo ?? true} onChange={e => setForm({ ...form, activo: e.target.value === "true" })} style={{ ...selectStyle, width: "100%" }}>
                 <option value="true">Activo</option>
                 <option value="false">Inactivo</option>
               </select>
             </div>
           </div>
           <div style={{ display: "flex", justifyContent: "flex-end", gap: "8px", marginTop: "8px" }}>
-            <Button variant="secondary" onClick={() => setModalOpen(false)}>Cancelar</Button>
-            <Button onClick={handleSave}>{editingUser ? "Actualizar" : "Crear Usuario"}</Button>
+            <Button variant="secondary" onClick={() => setModalOpen(false)}>CANCELAR</Button>
+            <Button onClick={handleSave}>{editingUser ? "ACTUALIZAR" : "Crear Usuario"}</Button>
           </div>
         </div>
       </Modal>

@@ -43,7 +43,6 @@ export default function Sidebar() {
         flexShrink: 0,
       }}
     >
-      {/* Logo */}
       <div
         style={{
           padding: "24px 20px 16px",
@@ -51,29 +50,10 @@ export default function Sidebar() {
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-          <div
-            style={{
-              width: "36px",
-              height: "36px",
-              backgroundColor: "#2d5a5a",
-              borderRadius: "8px",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontSize: "18px",
-            }}
-          >
-            🔒
-          </div>
           <div>
-            <div
-              style={{ color: "#4ade80", fontWeight: "700", fontSize: "18px" }}
-            >
-              ByteStore
-            </div>
-            <div style={{ color: "rgba(255,255,255,0.5)", fontSize: "11px" }}>
-              Hardware para todos
-            </div>
+            <div style={{ padding: "20px", borderBottom: "1px solid rgba(255,255,255,0.1)" }}>
+              <img src="/logo-dash.png" alt="ByteStore" style={{ width: "100%", maxWidth: "200px", height: "auto", display: "block", mixBlendMode: "lighten" }} />
+              </div>
           </div>
         </div>
       </div>
@@ -87,7 +67,7 @@ export default function Sidebar() {
             padding: "10px 12px",
             borderRadius: "8px",
             color: isActive ? "#1a3535" : "rgba(255,255,255,0.85)",
-            backgroundColor: isActive ? "#4ade80" : "transparent",
+            backgroundColor: isActive ? "#51BD9C" : "transparent",
             textDecoration: "none",
             fontWeight: "500",
             fontSize: "14px",
@@ -121,7 +101,7 @@ export default function Sidebar() {
                   padding: "9px 12px",
                   borderRadius: "8px",
                   color: isActive ? "#1a3535" : "rgba(255,255,255,0.75)",
-                  backgroundColor: isActive ? "#4ade80" : "transparent",
+                  backgroundColor: isActive ? "#51BD9C" : "transparent",
                   textDecoration: "none",
                   fontSize: "14px",
                   marginBottom: "2px",
@@ -154,7 +134,7 @@ export default function Sidebar() {
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            color: "#4ade80",
+            color: "#51BD9C",
             fontWeight: "700",
             fontSize: "13px",
             flexShrink: 0,

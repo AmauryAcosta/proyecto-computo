@@ -1,8 +1,8 @@
 export default function Input({ label, name, value, onChange, type = "text", placeholder = "", error = "" }) {
   return (
-    <div className="flex flex-col gap-1">
+    <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
       {label && (
-        <label htmlFor={name} className="text-sm font-medium text-emerald-300">
+        <label htmlFor={name} style={{ fontSize: "13px", fontWeight: "500", color: "#374151" }}>
           {label}
         </label>
       )}
@@ -13,11 +13,19 @@ export default function Input({ label, name, value, onChange, type = "text", pla
         value={value}
         onChange={onChange}
         placeholder={placeholder}
-        className={`bg-[#0f3d3d] border rounded px-3 py-2 text-sm text-white placeholder-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 ${
-          error ? "border-red-500" : "border-emerald-800"
-        }`}
+        style={{
+          border: `1px solid ${error ? "#dc2626" : "#d1d5db"}`,
+          borderRadius: "8px",
+          padding: "8px 12px",
+          fontSize: "14px",
+          outline: "none",
+          width: "100%",
+          boxSizing: "border-box",
+          backgroundColor: "white",
+          color: "#111827",
+        }}
       />
-      {error && <span className="text-xs text-red-400">{error}</span>}
+      {error && <span style={{ fontSize: "12px", color: "#dc2626" }}>{error}</span>}
     </div>
   );
 }

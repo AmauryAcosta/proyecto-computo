@@ -14,8 +14,7 @@ export default function App() {
         <Route element={<PrivateRoute />}>
           <Route element={<AppLayout />}>
             <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/users" element={<UserList />} />
-            <Route path="/usuarios" element={<div>Usuarios</div>} />
+            <Route path="/usuarios" element={<UserList />} />
             <Route path="/clientes" element={<div>Clientes</div>} />
             <Route path="/proveedores" element={<div>Proveedores</div>} />
             <Route path="/productos" element={<div>Productos</div>} />
