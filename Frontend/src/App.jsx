@@ -3,6 +3,7 @@ import PrivateRoute from "./routes/PrivateRoute";
 import AppLayout from "./components/layout/AppLayout";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
+import Proveedores from "./pages/proveedores/Proveedores";
 import UserList from "./pages/users/UserList";
 
 export default function App() {
@@ -16,7 +17,7 @@ export default function App() {
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/usuarios" element={<UserList />} />
             <Route path="/clientes" element={<div>Clientes</div>} />
-            <Route path="/proveedores" element={<div>Proveedores</div>} />
+            <Route path="/proveedores" element={<Proveedores />} />
             <Route path="/productos" element={<div>Productos</div>} />
             <Route path="/inventario" element={<div>Inventario</div>} />
             <Route path="/recepciones" element={<div>Recepciones</div>} />
