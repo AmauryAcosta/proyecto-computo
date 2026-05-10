@@ -1,20 +1,49 @@
 import { useState, useEffect } from "react";
-import { getUsers, createUser, updateUser, toggleUser, deleteUser } from "../../api/users";
+import {
+  getUsers,
+  createUser,
+  updateUser,
+  toggleUser,
+  deleteUser,
+} from "../../api/users";
 import Table from "../../components/ui/Table";
 import Modal from "../../components/ui/Modal";
 import Button from "../../components/ui/Button";
 import Input from "../../components/ui/Input";
 import Spinner from "../../components/ui/Spinner";
 import { useToast } from "../../components/ui/Toast";
+import { getRoles } from "../../api/roles";
 
-const emptyForm = { usuario: "", password: "", confirmar: "", nombre: "", apellido: "", email: "", roleId: "" };
+const emptyForm = {
+  usuario: "",
+  password: "",
+  confirmar: "",
+  nombre: "",
+  apellido: "",
+  email: "",
+  roleId: "",
+};
 
 function Avatar({ nombre }) {
   const initials = nombre?.slice(0, 2).toUpperCase() || "??";
   const colors = ["#a8d5ba", "#b5c4e8", "#f4c7c3", "#c8b8e8", "#f9d4a0"];
   const color = colors[nombre?.charCodeAt(0) % colors.length] || "#a8d5ba";
   return (
-    <div style={{ width: "32px", height: "32px", borderRadius: "50%", background: color, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "12px", fontWeight: "700", color: "#374151", flexShrink: 0 }}>
+    <div
+      style={{
+        width: "32px",
+        height: "32px",
+        borderRadius: "50%",
+        background: color,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        fontSize: "12px",
+        fontWeight: "700",
+        color: "#374151",
+        flexShrink: 0,
+      }}
+    >
       {initials}
     </div>
   );
@@ -34,6 +63,7 @@ export default function UserList() {
   const [filterRole, setFilterRole] = useState("");
   const [filterStatus, setFilterStatus] = useState("");
   const limit = 10;
+  const [roles, setRoles] = useState([]);
 
   const fetchUsers = async () => {
     setLoading(true);
@@ -48,7 +78,12 @@ export default function UserList() {
     }
   };
 
-  useEffect(() => { fetchUsers(); }, [page]);
+  useEffect(() => {
+    fetchUsers();
+    getRoles()
+      .then(setRoles)
+      .catch(() => {});
+  }, [page]);
 
   useEffect(() => {
     const handler = () => handleNew();
@@ -56,15 +91,16 @@ export default function UserList() {
     return () => document.removeEventListener("openNewUser", handler);
   }, []);
 
-  const activos = users.filter(u => u.activo).length;
-  const inactivos = users.filter(u => !u.activo).length;
+  const activos = users.filter((u) => u.activo).length;
+  const inactivos = users.filter((u) => !u.activo).length;
 
-  const filtered = users.filter(u => {
-    const matchSearch = !search ||
+  const filtered = users.filter((u) => {
+    const matchSearch =
+      !search ||
       u.usuario?.toLowerCase().includes(search.toLowerCase()) ||
       u.email?.toLowerCase().includes(search.toLowerCase()) ||
       u.nombre?.toLowerCase().includes(search.toLowerCase());
-    const matchRole = !filterRole || u.role === filterRole;
+    const matchRole = !filterRole || u.roleId === filterRole;
     const matchStatus = !filterStatus || String(u.activo) === filterStatus;
     return matchSearch && matchRole && matchStatus;
   });
@@ -78,7 +114,16 @@ export default function UserList() {
 
   const handleEdit = (user) => {
     setEditingUser(user);
-    setForm({ usuario: user.usuario, password: "", confirmar: "", nombre: user.nombre, apellido: user.apellido || "", email: user.email, roleId: user.roleId });
+    setForm({
+      usuario: user.usuario,
+      password: "",
+      confirmar: "",
+      nombre: user.nombre,
+      apellido: user.apellido || "",
+      email: user.email,
+      roleId: user.roleId,
+      activo: user.activo,
+    });
     setFormError({});
     setModalOpen(true);
   };
@@ -94,7 +139,10 @@ export default function UserList() {
 
   const handleSave = async () => {
     const errors = validate();
-    if (Object.keys(errors).length > 0) { setFormError(errors); return; }
+    if (Object.keys(errors).length > 0) {
+      setFormError(errors);
+      return;
+    }
     try {
       const payload = { ...form };
       delete payload.confirmar; // el backend no espera este campo
@@ -136,60 +184,129 @@ export default function UserList() {
 
   const columns = [
     {
-      key: "usuario", label: "Usuario",
+      key: "usuario",
+      label: "Usuario",
       render: (row) => (
         <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
           <Avatar nombre={row.nombre} />
           <span style={{ fontWeight: "500" }}>{row.usuario}</span>
         </div>
-      )
+      ),
     },
     { key: "email", label: "Email" },
     {
-      key: "role", label: "Rol",
-      render: (row) => row.role ? (
-        <span style={{ padding: "2px 10px", borderRadius: "999px", fontSize: "12px", fontWeight: "600", background: "#dcfce7", color: "#15803d" }}>
-          {row.role}
-        </span>
-      ) : "—"
+      key: "role",
+      label: "Rol",
+      render: (row) => {
+        const rol = roles.find((r) => r.id === row.roleId);
+        return rol ? (
+          <span
+            style={{
+              padding: "2px 10px",
+              borderRadius: "999px",
+              fontSize: "12px",
+              fontWeight: "600",
+              background: "#dcfce7",
+              color: "#15803d",
+            }}
+          >
+            {rol.nombre}
+          </span>
+        ) : (
+          "—"
+        );
+      },
     },
     {
-      key: "activo", label: "Estado",
+      key: "activo",
+      label: "Estado",
       render: (row) => (
-        <span style={{ padding: "2px 10px", borderRadius: "999px", fontSize: "12px", fontWeight: "600", background: row.activo ? "#dcfce7" : "#fee2e2", color: row.activo ? "#15803d" : "#dc2626" }}>
+        <span
+          style={{
+            padding: "2px 10px",
+            borderRadius: "999px",
+            fontSize: "12px",
+            fontWeight: "600",
+            background: row.activo ? "#dcfce7" : "#fee2e2",
+            color: row.activo ? "#15803d" : "#dc2626",
+          }}
+        >
           {row.activo ? "Activo" : "Inactivo"}
         </span>
-      )
+      ),
     },
     {
-      key: "acciones", label: "Acciones",
+      key: "acciones",
+      label: "Acciones",
       render: (row) => (
         <div style={{ display: "flex", gap: "8px" }}>
-          <Button variant="secondary" onClick={() => handleEdit(row)}>Editar</Button>
-          <Button variant="danger" onClick={() => handleDelete(row)}>Eliminar</Button>
+          <Button variant="secondary" onClick={() => handleEdit(row)}>
+            Editar
+          </Button>
+          <Button variant="danger" onClick={() => handleDelete(row)}>
+            Eliminar
+          </Button>
         </div>
-      )
+      ),
     },
   ];
 
   const totalPages = Math.ceil(total / limit);
   const f = (field) => (e) => setForm({ ...form, [field]: e.target.value });
-  const selectStyle = { border: "1px solid #d1d5db", borderRadius: "8px", padding: "7px 12px", fontSize: "13px", color: "#374151", backgroundColor: "white", cursor: "pointer" };
+  const selectStyle = {
+    border: "1px solid #d1d5db",
+    borderRadius: "8px",
+    padding: "7px 12px",
+    fontSize: "13px",
+    color: "#374151",
+    backgroundColor: "white",
+    cursor: "pointer",
+  };
 
   return (
     <div>
       {/* Card stats */}
-      <div style={{ background: "linear-gradient(135deg, #1b4332, #2d6a4f)", borderRadius: "12px", padding: "20px 24px", display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px", color: "white" }}>
+      <div
+        style={{
+          background: "linear-gradient(135deg, #1b4332, #2d6a4f)",
+          borderRadius: "12px",
+          padding: "20px 24px",
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          marginBottom: "20px",
+          color: "white",
+        }}
+      >
         <div>
-          <h3 style={{ fontSize: "18px", fontWeight: "700", margin: 0 }}>Gestión de Usuario</h3>
-          <p style={{ fontSize: "13px", opacity: 0.8, margin: "4px 0 0" }}>{total} usuarios registrados · {activos} activos · {inactivos} inactivos</p>
+          <h3 style={{ fontSize: "18px", fontWeight: "700", margin: 0 }}>
+            Gestión de Usuario
+          </h3>
+          <p style={{ fontSize: "13px", opacity: 0.8, margin: "4px 0 0" }}>
+            {total} usuarios registrados · {activos} activos · {inactivos}{" "}
+            inactivos
+          </p>
         </div>
         <div style={{ display: "flex", gap: "12px" }}>
-          <div style={{ background: "rgba(255,255,255,0.15)", borderRadius: "8px", padding: "10px 20px", textAlign: "center" }}>
+          <div
+            style={{
+              background: "rgba(255,255,255,0.15)",
+              borderRadius: "8px",
+              padding: "10px 20px",
+              textAlign: "center",
+            }}
+          >
             <div style={{ fontSize: "22px", fontWeight: "700" }}>{activos}</div>
             <div style={{ fontSize: "11px", opacity: 0.8 }}>Activos</div>
           </div>
-          <div style={{ background: "rgba(255,255,255,0.15)", borderRadius: "8px", padding: "10px 20px", textAlign: "center" }}>
+          <div
+            style={{
+              background: "rgba(255,255,255,0.15)",
+              borderRadius: "8px",
+              padding: "10px 20px",
+              textAlign: "center",
+            }}
+          >
             <div style={{ fontSize: "22px", fontWeight: "700" }}>3</div>
             <div style={{ fontSize: "11px", opacity: 0.8 }}>Roles</div>
           </div>
@@ -197,17 +314,60 @@ export default function UserList() {
       </div>
 
       {/* Buscador + filtros */}
-      <div style={{ display: "flex", gap: "12px", alignItems: "center", marginBottom: "16px", flexWrap: "wrap" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: "8px", border: "1px solid #d1d5db", borderRadius: "8px", padding: "7px 12px", background: "white", flex: 1, minWidth: "160px" }}>
+      <div
+        style={{
+          display: "flex",
+          gap: "12px",
+          alignItems: "center",
+          marginBottom: "16px",
+          flexWrap: "wrap",
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "8px",
+            border: "1px solid #d1d5db",
+            borderRadius: "8px",
+            padding: "7px 12px",
+            background: "white",
+            flex: 1,
+            minWidth: "160px",
+          }}
+        >
           <span style={{ color: "#9ca3af" }}>🔍</span>
-          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Buscar Usuario" style={{ border: "none", outline: "none", fontSize: "13px", color: "#374151", width: "100%", background: "transparent" }} />
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Buscar Usuario"
+            style={{
+              border: "none",
+              outline: "none",
+              fontSize: "13px",
+              color: "#374151",
+              width: "100%",
+              background: "transparent",
+            }}
+          />
         </div>
-        <select value={filterRole} onChange={e => setFilterRole(e.target.value)} style={selectStyle}>
+        <select
+          value={filterRole}
+          onChange={(e) => setFilterRole(e.target.value)}
+          style={selectStyle}
+        >
           <option value="">Todos los roles</option>
-          <option value="ADMIN">ADMIN</option>
-          <option value="USER">USER</option>
+          {roles.map((rol) => (
+            <option key={rol.id} value={rol.id}>
+              {rol.nombre}
+            </option>
+          ))}
         </select>
-        <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} style={selectStyle}>
+        <select
+          value={filterStatus}
+          onChange={(e) => setFilterStatus(e.target.value)}
+          style={selectStyle}
+        >
           <option value="">Todos los estados</option>
           <option value="true">Activo</option>
           <option value="false">Inactivo</option>
@@ -216,60 +376,218 @@ export default function UserList() {
 
       {/* Tabla */}
       {loading ? (
-        <div style={{ padding: "40px", display: "flex", justifyContent: "center" }}><Spinner /></div>
+        <div
+          style={{ padding: "40px", display: "flex", justifyContent: "center" }}
+        >
+          <Spinner />
+        </div>
       ) : (
         <Table columns={columns} data={filtered} />
       )}
 
       {/* Paginación */}
       {totalPages > 1 && (
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "12px", padding: "0 4px" }}>
-          <span style={{ fontSize: "13px", color: "#40916c" }}>Mostrando {(page-1)*limit+1} - {Math.min(page*limit, total)} de {total} Usuarios</span>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            marginTop: "12px",
+            padding: "0 4px",
+          }}
+        >
+          <span style={{ fontSize: "13px", color: "#40916c" }}>
+            Mostrando {(page - 1) * limit + 1} - {Math.min(page * limit, total)}{" "}
+            de {total} Usuarios
+          </span>
           <div style={{ display: "flex", gap: "4px" }}>
-            <button disabled={page===1} onClick={() => setPage(p=>p-1)} style={{ ...selectStyle, padding: "5px 10px" }}>‹</button>
+            <button
+              disabled={page === 1}
+              onClick={() => setPage((p) => p - 1)}
+              style={{ ...selectStyle, padding: "5px 10px" }}
+            >
+              ‹
+            </button>
             {Array.from({ length: totalPages }, (_, i) => (
-              <button key={i} onClick={() => setPage(i+1)} style={{ ...selectStyle, padding: "5px 10px", background: page===i+1 ? "#1b4332" : "white", color: page===i+1 ? "white" : "#374151" }}>{i+1}</button>
+              <button
+                key={i}
+                onClick={() => setPage(i + 1)}
+                style={{
+                  ...selectStyle,
+                  padding: "5px 10px",
+                  background: page === i + 1 ? "#1b4332" : "white",
+                  color: page === i + 1 ? "white" : "#374151",
+                }}
+              >
+                {i + 1}
+              </button>
             ))}
-            <button disabled={page===totalPages} onClick={() => setPage(p=>p+1)} style={{ ...selectStyle, padding: "5px 10px" }}>›</button>
+            <button
+              disabled={page === totalPages}
+              onClick={() => setPage((p) => p + 1)}
+              style={{ ...selectStyle, padding: "5px 10px" }}
+            >
+              ›
+            </button>
           </div>
         </div>
       )}
 
       {/* Modal */}
-      <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} title={editingUser ? "Editar Usuario - ByteStore" : "Nuevo Usuario - ByteStore"}>
+      <Modal
+        isOpen={modalOpen}
+        onClose={() => setModalOpen(false)}
+        title={
+          editingUser
+            ? "Editar Usuario - ByteStore"
+            : "Nuevo Usuario - ByteStore"
+        }
+      >
         <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
-            <Input label="Nombre" name="nombre" value={form.nombre} onChange={f("nombre")} placeholder="Ej. Juan" error={formError.nombre} />
-            <Input label="Apellido" name="apellido" value={form.apellido} onChange={f("apellido")} placeholder="Ej. Perez" />
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "1fr 1fr",
+              gap: "12px",
+            }}
+          >
+            <Input
+              label="Nombre"
+              name="nombre"
+              value={form.nombre}
+              onChange={f("nombre")}
+              placeholder="Ej. Juan"
+              error={formError.nombre}
+            />
+            <Input
+              label="Apellido"
+              name="apellido"
+              value={form.apellido}
+              onChange={f("apellido")}
+              placeholder="Ej. Perez"
+            />
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
-            <Input label="Usuario" name="usuario" value={form.usuario} onChange={f("usuario")} placeholder="JuanP" error={formError.usuario} />
-            <Input label="Email" name="email" type="email" value={form.email} onChange={f("email")} placeholder="juanp@outlook.com" error={formError.email} />
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "1fr 1fr",
+              gap: "12px",
+            }}
+          >
+            <Input
+              label="Usuario"
+              name="usuario"
+              value={form.usuario}
+              onChange={f("usuario")}
+              placeholder="JuanP"
+              error={formError.usuario}
+            />
+            <Input
+              label="Email"
+              name="email"
+              type="email"
+              value={form.email}
+              onChange={f("email")}
+              placeholder="juanp@outlook.com"
+              error={formError.email}
+            />
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
-            <Input label={editingUser ? "Nueva contraseña (opcional)" : "Contraseña"} name="password" type="password" value={form.password} onChange={f("password")} placeholder="••••••••" error={formError.password} />
-            <Input label="Confirmar" name="confirmar" type="password" value={form.confirmar} onChange={f("confirmar")} placeholder="••••••••" />
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "1fr 1fr",
+              gap: "12px",
+            }}
+          >
+            <Input
+              label={editingUser ? "Nueva contraseña (opcional)" : "Contraseña"}
+              name="password"
+              type="password"
+              value={form.password}
+              onChange={f("password")}
+              placeholder="••••••••"
+              error={formError.password}
+            />
+            <Input
+              label="Confirmar"
+              name="confirmar"
+              type="password"
+              value={form.confirmar}
+              onChange={f("confirmar")}
+              placeholder="••••••••"
+            />
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
-            <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-              <label style={{ fontSize: "13px", fontWeight: "500", color: "#374151" }}>Rol</label>
-              <select value={form.roleId} onChange={f("roleId")} style={{ ...selectStyle, width: "100%" }}>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "1fr 1fr",
+              gap: "12px",
+            }}
+          >
+            <div
+              style={{ display: "flex", flexDirection: "column", gap: "4px" }}
+            >
+              <label
+                style={{
+                  fontSize: "13px",
+                  fontWeight: "500",
+                  color: "#374151",
+                }}
+              >
+                Rol
+              </label>
+              <select
+                value={form.roleId}
+                onChange={f("roleId")}
+                style={{ ...selectStyle, width: "100%" }}
+              >
                 <option value="">Seleccionar rol</option>
-                <option value="role_admin">ADMIN</option>
-                <option value="role_user">USER</option>
+                {roles.map((rol) => (
+                  <option key={rol.id} value={rol.id}>
+                    {rol.nombre}
+                  </option>
+                ))}
               </select>
             </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-              <label style={{ fontSize: "13px", fontWeight: "500", color: "#374151" }}>Estado</label>
-              <select value={form.activo ?? true} onChange={e => setForm({ ...form, activo: e.target.value === "true" })} style={{ ...selectStyle, width: "100%" }}>
+            <div
+              style={{ display: "flex", flexDirection: "column", gap: "4px" }}
+            >
+              <label
+                style={{
+                  fontSize: "13px",
+                  fontWeight: "500",
+                  color: "#374151",
+                }}
+              >
+                Estado
+              </label>
+              <select
+                value={form.activo === undefined ? "" : String(form.activo)}
+                onChange={(e) =>
+                  setForm({ ...form, activo: e.target.value === "true" })
+                }
+                style={{ ...selectStyle, width: "100%" }}
+              >
+                <option value="">Seleccionar estado</option>
                 <option value="true">Activo</option>
                 <option value="false">Inactivo</option>
               </select>
             </div>
           </div>
-          <div style={{ display: "flex", justifyContent: "flex-end", gap: "8px", marginTop: "8px" }}>
-            <Button variant="secondary" onClick={() => setModalOpen(false)}>CANCELAR</Button>
-            <Button onClick={handleSave}>{editingUser ? "ACTUALIZAR" : "Crear Usuario"}</Button>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "flex-end",
+              gap: "8px",
+              marginTop: "8px",
+            }}
+          >
+            <Button variant="secondary" onClick={() => setModalOpen(false)}>
+              CANCELAR
+            </Button>
+            <Button onClick={handleSave}>
+              {editingUser ? "ACTUALIZAR" : "Crear Usuario"}
+            </Button>
           </div>
         </div>
       </Modal>
