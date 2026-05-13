@@ -1,190 +1,416 @@
-import { useState } from "react";
-import { useToast } from "../../components/ui/Toast";
-import FilterBar from "../../components/ui/FilterBar";
+import { useState, useEffect } from "react";
+import {
+  getSuppliers,
+  createSupplier,
+  updateSupplier,
+  toggleSupplier,
+  deleteSupplier,
+} from "../../api/suppliers";
+import Table from "../../components/ui/Table";
 import Modal from "../../components/ui/Modal";
 import Input from "../../components/ui/Input";
 import Button from "../../components/ui/Button";
+import Spinner from "../../components/ui/Spinner";
+import { useToast } from "../../components/ui/Toast";
 
-const Badge = ({ type, children }) => {
-  const styles = {
-    green: { background: "#dcfce7", color: "#15803d", border: "1px solid #86efac" },
-    red: { background: "#fee2e2", color: "#dc2626", border: "1px solid #fca5a5" },
-  };
-  return (
-    <span style={{ ...styles[type], padding: "2px 10px", borderRadius: "9999px", fontSize: "11px", fontWeight: "600" }}>
-      {children}
-    </span>
-  );
+const emptyForm = { nombre: "", email: "", rfc: "", telefono: "" };
+
+const selectStyle = {
+  border: "1px solid #d1d5db",
+  borderRadius: "8px",
+  padding: "7px 12px",
+  fontSize: "13px",
+  color: "#374151",
+  backgroundColor: "white",
+  cursor: "pointer",
 };
-
-const initialData = [
-  { id: 1, empresa: "HP Mexico", email: "ventas@hp.mx", rfc: "HPM88001012SX", telefono: "55-5000-1021", estado: "Activo" },
-  { id: 2, empresa: "Canon México", email: "ventas@canon.mx", rfc: "CMX920301AB1", telefono: "55-5000-2032", estado: "Activo" },
-  { id: 3, empresa: "Logitech México", email: "ventas@logitech.mx", rfc: "LMX850612CD3", telefono: "55-5000-3043", estado: "Activo" },
-];
-
-const emptyForm = { empresa: "", email: "", rfc: "", telefono: "" };
 
 export default function Proveedores() {
   const toast = useToast();
-  const [data, setData] = useState(initialData);
-  const [search, setSearch] = useState("");
-  const [filterEstado, setFilterEstado] = useState("todos");
+  const [suppliers, setSuppliers] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
   const [editItem, setEditItem] = useState(null);
   const [form, setForm] = useState(emptyForm);
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [search, setSearch] = useState("");
+  const [filterStatus, setFilterStatus] = useState("");
+  const limit = 10;
 
-  const filtered = data.filter((p) => {
+  const fetchSuppliers = async () => {
+    setLoading(true);
+    try {
+      const data = await getSuppliers(page, limit);
+      setSuppliers(data.items);
+      setTotal(data.total);
+    } catch {
+      toast("Error al cargar proveedores", "error");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchSuppliers();
+  }, [page]);
+
+  useEffect(() => {
+    const handler = () => handleOpen();
+    document.addEventListener("openNewSupplier", handler);
+    return () => document.removeEventListener("openNewSupplier", handler);
+  }, []);
+
+  const activos = suppliers.filter((s) => s.activo).length;
+  const inactivos = suppliers.filter((s) => !s.activo).length;
+
+  const filtered = suppliers.filter((s) => {
     const matchSearch =
-      p.empresa.toLowerCase().includes(search.toLowerCase()) ||
-      p.email.toLowerCase().includes(search.toLowerCase()) ||
-      p.rfc.toLowerCase().includes(search.toLowerCase());
-    const matchEstado = filterEstado === "todos" || p.estado === filterEstado;
-    return matchSearch && matchEstado;
+      !search ||
+      s.nombre?.toLowerCase().includes(search.toLowerCase()) ||
+      s.email?.toLowerCase().includes(search.toLowerCase()) ||
+      s.rfc?.toLowerCase().includes(search.toLowerCase());
+    const matchStatus = !filterStatus || String(s.activo) === filterStatus;
+    return matchSearch && matchStatus;
   });
 
   const handleOpen = (item = null) => {
     setEditItem(item);
-    setForm(item ? { empresa: item.empresa, email: item.email, rfc: item.rfc, telefono: item.telefono } : emptyForm);
+    setForm(
+      item
+        ? {
+            nombre: item.nombre,
+            email: item.email,
+            rfc: item.rfc,
+            telefono: item.telefono,
+            activo: item.activo,
+          }
+        : emptyForm,
+    );
     setModalOpen(true);
   };
 
-  const handleSave = () => {
-    if (!form.empresa || !form.email) {
-      toast("Completa todos los campos", "error");
+  const handleSave = async () => {
+    if (!form.nombre || !form.email) {
+      toast("Completa los campos requeridos", "error");
       return;
     }
-    if (editItem) {
-      setData(data.map((p) => p.id === editItem.id ? { ...p, ...form } : p));
-      toast("Proveedor actualizado", "success");
-    } else {
-      setData([...data, { id: Date.now(), ...form, estado: "Activo" }]);
-      toast("Proveedor creado", "success");
+    try {
+      if (editItem) {
+        await updateSupplier(editItem.id, form);
+        toast("Proveedor actualizado", "success");
+      } else {
+        await createSupplier(form);
+        toast("Proveedor creado", "success");
+      }
+      setModalOpen(false);
+      fetchSuppliers();
+    } catch (err) {
+      toast(err.response?.data?.message || "Error al guardar", "error");
     }
-    setModalOpen(false);
   };
 
-  const handleToggle = (id) => {
-    setData(data.map((p) => p.id === id ? { ...p, estado: p.estado === "Activo" ? "Inactivo" : "Activo" } : p));
-    toast("Estado actualizado", "info");
+  const handleToggle = async (supplier) => {
+    try {
+      await toggleSupplier(supplier.id);
+      toast(
+        `Proveedor ${supplier.activo ? "desactivado" : "activado"}`,
+        "success",
+      );
+      fetchSuppliers();
+    } catch {
+      toast("Error al cambiar estado", "error");
+    }
   };
 
-  const handleDelete = (id) => {
-    setData(data.filter((p) => p.id !== id));
-    toast("Proveedor eliminado", "warning");
+  const handleDelete = async (supplier) => {
+    if (!confirm(`¿Eliminar a ${supplier.nombre}?`)) return;
+    try {
+      await deleteSupplier(supplier.id);
+      toast("Proveedor eliminado", "success");
+      fetchSuppliers();
+    } catch {
+      toast("Error al eliminar", "error");
+    }
   };
+
+  const columns = [
+    { key: "nombre", label: "Empresa" },
+    { key: "rfc", label: "RFC" },
+    { key: "email", label: "Email" },
+    { key: "telefono", label: "Teléfono" },
+    {
+      key: "activo",
+      label: "Estado",
+      render: (row) => (
+        <span
+          style={{
+            padding: "2px 10px",
+            borderRadius: "999px",
+            fontSize: "12px",
+            fontWeight: "600",
+            background: row.activo ? "#dcfce7" : "#fee2e2",
+            color: row.activo ? "#15803d" : "#dc2626",
+          }}
+        >
+          {row.activo ? "Activo" : "Inactivo"}
+        </span>
+      ),
+    },
+    {
+      key: "acciones",
+      label: "Acciones",
+      render: (row) => (
+        <div style={{ display: "flex", gap: "8px" }}>
+          <Button variant="secondary" onClick={() => handleOpen(row)}>
+            Editar
+          </Button>
+          <Button variant="danger" onClick={() => handleDelete(row)}>
+            Eliminar
+          </Button>
+        </div>
+      ),
+    },
+  ];
+
+  const totalPages = Math.ceil(total / limit);
+  const f = (field) => (e) => setForm({ ...form, [field]: e.target.value });
 
   return (
-    <div style={{ minHeight: "100vh", background: "#f9fafb", padding: "32px", fontFamily: "sans-serif" }}>
-
-      {/* Header */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "24px" }}>
-        <div>
-          <h1 style={{ fontSize: "24px", fontWeight: "bold", color: "#111827", margin: 0 }}>Proveedores</h1>
-          <p style={{ color: "#6b7280", fontSize: "13px", marginTop: "4px" }}>{data.length} proveedores registrados</p>
-        </div>
-        <button onClick={() => handleOpen()}
-          style={{ padding: "8px 18px", background: "#0f766e", color: "white", border: "none", borderRadius: "8px", cursor: "pointer", fontWeight: "600", fontSize: 14 }}>
-          + Nuevo Proveedor
-        </button>
-      </div>
-
+    <div>
       {/* Stats */}
-      <div style={{ background: "#134e4a", borderRadius: "12px", padding: "20px 24px", marginBottom: "24px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+      <div
+        style={{
+          background: "linear-gradient(135deg, #1b4332, #2d6a4f)",
+          borderRadius: "12px",
+          padding: "20px 24px",
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          marginBottom: "20px",
+          color: "white",
+        }}
+      >
         <div>
-          <p style={{ color: "#99f6e4", fontSize: 13, margin: 0 }}>Proveedores ByteStore</p>
-          <p style={{ color: "#ccfbf1", fontSize: 12, margin: "4px 0 0" }}>{data.length} proveedores registrados</p>
+          <h3 style={{ fontSize: "18px", fontWeight: "700", margin: 0 }}>
+            Proveedores de hardware
+          </h3>
+          <p style={{ fontSize: "13px", opacity: 0.8, margin: "4px 0 0" }}>
+            {total} proveedores registrados · {activos} activos · {inactivos}{" "}
+            inactivos
+          </p>
         </div>
         <div style={{ display: "flex", gap: "12px" }}>
-          <div style={{ background: "#0f766e", borderRadius: "8px", padding: "8px 16px", textAlign: "center" }}>
-            <p style={{ color: "white", fontWeight: "bold", fontSize: 20, margin: 0 }}>{data.filter(p => p.estado === "Activo").length}</p>
-            <p style={{ color: "#99f6e4", fontSize: 11, margin: 0 }}>Activos</p>
+          <div
+            style={{
+              background: "rgba(255,255,255,0.15)",
+              borderRadius: "8px",
+              padding: "10px 20px",
+              textAlign: "center",
+            }}
+          >
+            <div style={{ fontSize: "22px", fontWeight: "700" }}>{activos}</div>
+            <div style={{ fontSize: "11px", opacity: 0.8 }}>Activos</div>
           </div>
-          <div style={{ background: "#115e59", borderRadius: "8px", padding: "8px 16px", textAlign: "center" }}>
-            <p style={{ color: "white", fontWeight: "bold", fontSize: 20, margin: 0 }}>{data.filter(p => p.estado === "Inactivo").length}</p>
-            <p style={{ color: "#99f6e4", fontSize: 11, margin: 0 }}>Inactivos</p>
+          <div
+            style={{
+              background: "rgba(255,255,255,0.15)",
+              borderRadius: "8px",
+              padding: "10px 20px",
+              textAlign: "center",
+            }}
+          >
+            <div style={{ fontSize: "22px", fontWeight: "700" }}>
+              {inactivos}
+            </div>
+            <div style={{ fontSize: "11px", opacity: 0.8 }}>Inactivos</div>
           </div>
         </div>
       </div>
 
-      {/* FilterBar */}
-      <FilterBar
-        search={search}
-        onSearch={setSearch}
-        placeholder="Buscar proveedor..."
-        filters={[
-          {
-            key: "estado",
-            value: filterEstado,
-            onChange: setFilterEstado,
-            options: [
-              { value: "todos", label: "Todos los estados" },
-              { value: "Activo", label: "Activo" },
-              { value: "Inactivo", label: "Inactivo" },
-            ],
-          },
-        ]}
-      />
+      {/* Filtros */}
+      <div
+        style={{
+          display: "flex",
+          gap: "12px",
+          alignItems: "center",
+          marginBottom: "16px",
+          flexWrap: "wrap",
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "8px",
+            border: "1px solid #d1d5db",
+            borderRadius: "8px",
+            padding: "7px 12px",
+            background: "white",
+            flex: 1,
+            minWidth: "160px",
+          }}
+        >
+          <span style={{ color: "#9ca3af" }}>🔍</span>
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Buscar proveedor..."
+            style={{
+              border: "none",
+              outline: "none",
+              fontSize: "13px",
+              color: "#374151",
+              width: "100%",
+              background: "transparent",
+            }}
+          />
+        </div>
+        <select
+          value={filterStatus}
+          onChange={(e) => setFilterStatus(e.target.value)}
+          style={selectStyle}
+        >
+          <option value="">Todos los estados</option>
+          <option value="true">Activo</option>
+          <option value="false">Inactivo</option>
+        </select>
+      </div>
 
       {/* Tabla */}
-      <div style={{ background: "white", borderRadius: "12px", border: "1px solid #e5e7eb", overflow: "hidden" }}>
-        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}>
-          <thead>
-            <tr style={{ borderBottom: "1px solid #e5e7eb", background: "#f9fafb" }}>
-              {["Empresa", "RFC", "Email", "Teléfono", "Estado", "Acciones"].map(col => (
-                <th key={col} style={{ padding: "12px 16px", textAlign: "left", fontSize: 12, fontWeight: 600, color: "#6b7280", textTransform: "uppercase", letterSpacing: "0.05em" }}>
-                  {col}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {filtered.map((row) => (
-              <tr key={row.id} style={{ borderBottom: "1px solid #f3f4f6" }}
-                onMouseEnter={e => e.currentTarget.style.background = "#f9fafb"}
-                onMouseLeave={e => e.currentTarget.style.background = "white"}>
-                <td style={{ padding: "14px 16px", color: "#111827", fontWeight: 500 }}>{row.empresa}</td>
-                <td style={{ padding: "14px 16px", color: "#6b7280" }}>{row.rfc}</td>
-                <td style={{ padding: "14px 16px", color: "#6b7280" }}>{row.email}</td>
-                <td style={{ padding: "14px 16px", color: "#6b7280" }}>{row.telefono}</td>
-                <td style={{ padding: "14px 16px" }}>
-                  <Badge type={row.estado === "Activo" ? "green" : "red"}>{row.estado}</Badge>
-                </td>
-                <td style={{ padding: "14px 16px" }}>
-                  <div style={{ display: "flex", gap: "8px" }}>
-                    <button onClick={() => handleOpen(row)}
-                      style={{ padding: "4px 12px", borderRadius: "6px", border: "1px solid #d1d5db", background: "white", color: "#374151", cursor: "pointer", fontSize: 13 }}>
-                      Editar
-                    </button>
-                    <button onClick={() => handleToggle(row.id)}
-                      style={{ padding: "4px 12px", borderRadius: "6px", border: "1px solid #d1d5db", background: "white", color: row.estado === "Activo" ? "#dc2626" : "#15803d", cursor: "pointer", fontSize: 13 }}>
-                      {row.estado === "Activo" ? "Desactivar" : "Activar"}
-                    </button>
-                    <button onClick={() => handleDelete(row.id)}
-                      style={{ padding: "4px 12px", borderRadius: "6px", border: "1px solid #fca5a5", background: "white", color: "#dc2626", cursor: "pointer", fontSize: 13 }}>
-                      Eliminar
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        <div style={{ padding: "12px 16px", background: "#f0fdf4", borderTop: "1px solid #d1fae5" }}>
-          <span style={{ color: "#059669", fontSize: 13 }}>Mostrando {filtered.length} de {data.length} proveedores</span>
+      {loading ? (
+        <div
+          style={{ padding: "40px", display: "flex", justifyContent: "center" }}
+        >
+          <Spinner />
         </div>
-      </div>
+      ) : (
+        <Table columns={columns} data={filtered} />
+      )}
+
+      {/* Paginación */}
+      {totalPages > 1 && (
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            marginTop: "12px",
+          }}
+        >
+          <span style={{ fontSize: "13px", color: "#40916c" }}>
+            Mostrando {(page - 1) * limit + 1} - {Math.min(page * limit, total)}{" "}
+            de {total} proveedores
+          </span>
+          <div style={{ display: "flex", gap: "4px" }}>
+            <button
+              disabled={page === 1}
+              onClick={() => setPage((p) => p - 1)}
+              style={{ ...selectStyle, padding: "5px 10px" }}
+            >
+              ‹
+            </button>
+            {Array.from({ length: totalPages }, (_, i) => (
+              <button
+                key={i}
+                onClick={() => setPage(i + 1)}
+                style={{
+                  ...selectStyle,
+                  padding: "5px 10px",
+                  background: page === i + 1 ? "#1b4332" : "white",
+                  color: page === i + 1 ? "white" : "#374151",
+                }}
+              >
+                {i + 1}
+              </button>
+            ))}
+            <button
+              disabled={page === totalPages}
+              onClick={() => setPage((p) => p + 1)}
+              style={{ ...selectStyle, padding: "5px 10px" }}
+            >
+              ›
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Modal */}
-      <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} title={editItem ? "Editar Proveedor" : "Nuevo Proveedor"}>
-        <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-          <Input label="Empresa" name="empresa" value={form.empresa} onChange={e => setForm({ ...form, empresa: e.target.value })} placeholder="Nombre de la empresa" />
-          <Input label="Email" name="email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} placeholder="correo@empresa.com" />
-          <Input label="RFC" name="rfc" value={form.rfc} onChange={e => setForm({ ...form, rfc: e.target.value })} placeholder="RFC de la empresa" />
-          <Input label="Teléfono" name="telefono" value={form.telefono} onChange={e => setForm({ ...form, telefono: e.target.value })} placeholder="55-5000-0000" />
-          <div style={{ display: "flex", justifyContent: "flex-end", gap: "8px", marginTop: "8px" }}>
-            <Button variant="secondary" onClick={() => setModalOpen(false)}>Cancelar</Button>
-            <Button onClick={handleSave}>Guardar</Button>
+      <Modal
+        isOpen={modalOpen}
+        onClose={() => setModalOpen(false)}
+        title={
+          editItem
+            ? "Editar Proveedor - ByteStore"
+            : "Nuevo Proveedor - ByteStore"
+        }
+      >
+        <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "1fr 1fr",
+              gap: "12px",
+            }}
+          >
+            <Input
+              label="Empresa"
+              value={form.nombre}
+              onChange={f("nombre")}
+              placeholder="HP Mexico"
+            />
+            <Input
+              label="RFC"
+              value={form.rfc}
+              onChange={f("rfc")}
+              placeholder="HPM88001012SX"
+            />
+          </div>
+          <Input
+            label="Email"
+            type="email"
+            value={form.email}
+            onChange={f("email")}
+            placeholder="ventas@empresa.com"
+          />
+          <Input
+            label="Teléfono"
+            value={form.telefono}
+            onChange={f("telefono")}
+            placeholder="55-5000-0000"
+          />
+          <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+            <label
+              style={{ fontSize: "13px", fontWeight: "500", color: "#374151" }}
+            >
+              Estado
+            </label>
+            <select
+              value={form.activo === undefined ? "" : String(form.activo)}
+              onChange={(e) =>
+                setForm({ ...form, activo: e.target.value === "true" })
+              }
+              style={{ ...selectStyle, width: "100%" }}
+            >
+              <option value="">Seleccionar estado</option>
+              <option value="true">Activo</option>
+              <option value="false">Inactivo</option>
+            </select>
+          </div>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "flex-end",
+              gap: "8px",
+              marginTop: "8px",
+            }}
+          >
+            <Button variant="secondary" onClick={() => setModalOpen(false)}>
+              CANCELAR
+            </Button>
+            <Button onClick={handleSave}>
+              {editItem ? "ACTUALIZAR" : "Crear Proveedor"}
+            </Button>
           </div>
         </div>
       </Modal>
