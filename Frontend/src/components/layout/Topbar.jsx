@@ -1,16 +1,53 @@
 import { useLocation } from "react-router-dom";
+import { usePermission } from "../../hooks/usePermission";
 
-const pageActions = {
-  "/usuarios": { label: "+ Nuevo Usuario", event: "openNewUser" },
-  "/clientes": { label: "+ Nuevo Cliente", event: "openNewCliente" },
-  "/proveedores": { label: "+ Nuevo Proveedor", event: "openNewSupplier" },
-  "/productos": { label: "+ Nuevo Producto", event: "openNewProducto" },
-  "/recepciones": { label: "+ Nueva Recepción", event: "openNewRecepcion" },
+const topbarActions = {
+  "/usuarios": {
+    label: "+ Nuevo Usuario",
+    event: "openNewUser",
+    permiso: "users:create",
+  },
+  "/clientes": {
+    label: "+ Nuevo Cliente",
+    event: "openNewClient",
+    permiso: "clients:create",
+  },
+  "/proveedores": {
+    label: "+ Nuevo Proveedor",
+    event: "openNewSupplier",
+    permiso: "suppliers:create",
+  },
+  "/productos": {
+    label: "+ Nuevo Producto",
+    event: "openNewProduct",
+    permiso: "products:create",
+  },
+  "/recepciones": {
+    label: "+ Nueva Recepción",
+    event: "openNewRecepcion",
+    permiso: "recepciones:create",
+  },
 };
 
-export default function Topbar({ title }) {
+const pageTitles = {
+  "/dashboard": "Dashboard",
+  "/usuarios": "Usuarios",
+  "/clientes": "Clientes",
+  "/proveedores": "Proveedores",
+  "/productos": "Productos",
+  "/inventario": "Inventario",
+  "/recepciones": "Recepciones",
+  "/auditoria": "Auditorías del sistema",
+  "/roles": "Roles",
+  "/permisos": "Permisos",
+};
+
+export default function Topbar() {
   const { pathname } = useLocation();
-  const action = pageActions[pathname];
+  const { hasPermission } = usePermission();
+  const action = topbarActions[pathname];
+  const title = pageTitles[pathname] || "ByteStore";
+  const puedeCrear = action && hasPermission(action.permiso);
 
   const handleAction = () => {
     if (action) document.dispatchEvent(new CustomEvent(action.event));
@@ -39,23 +76,39 @@ export default function Topbar({ title }) {
       >
         {title}
       </h1>
-      {action && (
-        <button
-          onClick={() => document.dispatchEvent(new CustomEvent(action.event))}
+      <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+        {puedeCrear && (
+          <button
+            onClick={handleAction}
+            style={{
+              padding: "8px 16px",
+              background: "#1b4332",
+              color: "white",
+              border: "none",
+              borderRadius: "8px",
+              cursor: "pointer",
+              fontWeight: "600",
+              fontSize: "14px",
+            }}
+          >
+            {action.label}
+          </button>
+        )}
+        <div
           style={{
-            background: "#1b4332",
-            color: "white",
-            border: "none",
+            display: "flex",
+            alignItems: "center",
+            gap: "8px",
+            backgroundColor: "#f3f4f6",
             borderRadius: "8px",
-            padding: "10px 18px",
+            padding: "6px 12px",
+            color: "#9ca3af",
             fontSize: "14px",
-            fontWeight: "600",
-            cursor: "pointer",
           }}
         >
-          {action.label}
-        </button>
-      )}
+          🔍 Search
+        </div>
+      </div>
     </header>
   );
 }
