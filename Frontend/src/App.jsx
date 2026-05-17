@@ -5,6 +5,7 @@ import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import Proveedores from "./pages/proveedores/Proveedores";
 import UserList from "./pages/users/UserList";
+import ClientList from "./pages/clients/ClientList";
 
 export default function App() {
   return (
@@ -16,7 +17,7 @@ export default function App() {
           <Route element={<AppLayout />}>
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/usuarios" element={<UserList />} />
-            <Route path="/clientes" element={<div>Clientes</div>} />
+            <Route path="/clientes" element={<ClientList />} />
             <Route path="/proveedores" element={<Proveedores />} />
             <Route path="/productos" element={<div>Productos</div>} />
             <Route path="/inventario" element={<div>Inventario</div>} />
