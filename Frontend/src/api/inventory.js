@@ -11,7 +11,7 @@ export const getInventoryByProduct = async (productId) => {
 };
 
 export const adjustInventory = async (productId, adjustData) => {
-  const { data } = await api.post(`/inventory/${productId}/adjust`, adjustData);
+  const { data } = await api.patch(`/inventory/${productId}/adjust`, adjustData);
   return data.item;
 };
 
