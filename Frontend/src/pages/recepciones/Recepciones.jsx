@@ -1,19 +1,33 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useToast } from "../../components/ui/Toast";
 import Modal from "../../components/ui/Modal";
 import Input from "../../components/ui/Input";
 import Button from "../../components/ui/Button";
 import Table from "../../components/ui/Table";
-import Spinner from "../../components/ui/Spinner";
-import {
-  getRecepciones,
-  createRecepcion,
-  updateRecepcion,
-  confirmRecepcion,
-  deleteRecepcion,
-} from "../../api/recepciones";
 
-const emptyForm = { proveedorId: "", fecha: "" };
+const initialData = [
+  {
+    id: 1,
+    proveedor: "HP Mexico",
+    fecha: "2026-05-01",
+    estado: "Confirmada",
+    productos: [
+      { nombre: "Toner HP 85A", cantidad: 10, precioUnitario: 800 },
+      { nombre: "Cable HDMI 2m", cantidad: 5, precioUnitario: 180 },
+    ],
+  },
+  {
+    id: 2,
+    proveedor: "Logitech México",
+    fecha: "2026-05-03",
+    estado: "Pendiente",
+    productos: [
+      { nombre: "Mouse Logitech M185", cantidad: 20, precioUnitario: 250 },
+    ],
+  },
+];
+
+const emptyForm = { proveedor: "", fecha: "" };
 
 const selectStyle = {
   border: "1px solid #d1d5db",
@@ -27,14 +41,13 @@ const selectStyle = {
 
 const estadoBadge = (estado) => {
   const styles = {
-    confirmada: { background: "#dcfce7", color: "#15803d" },
-    pendiente: { background: "#fef9c3", color: "#a16207" },
-    "en proceso": { background: "#dbeafe", color: "#1d4ed8" },
+    Confirmada: { background: "#dcfce7", color: "#15803d" },
+    Pendiente: { background: "#fef9c3", color: "#a16207" },
+    "En proceso": { background: "#dbeafe", color: "#1d4ed8" },
   };
-  const key = estado?.toLowerCase();
   return (
     <span style={{
-      ...(styles[key] || { background: "#f3f4f6", color: "#374151" }),
+      ...styles[estado],
       padding: "2px 10px",
       borderRadius: "999px",
       fontSize: "12px",
@@ -47,8 +60,7 @@ const estadoBadge = (estado) => {
 
 export default function Recepciones() {
   const toast = useToast();
-  const [data, setData] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [data, setData] = useState(initialData);
   const [modalOpen, setModalOpen] = useState(false);
   const [detalleOpen, setDetalleOpen] = useState(false);
   const [editItem, setEditItem] = useState(null);
@@ -56,103 +68,58 @@ export default function Recepciones() {
   const [form, setForm] = useState(emptyForm);
   const [search, setSearch] = useState("");
   const [filterEstado, setFilterEstado] = useState("");
-  const [page, setPage] = useState(1);
-  const [total, setTotal] = useState(0);
-  const limit = 10;
 
-  const fetchRecepciones = async () => {
-    setLoading(true);
-    try {
-      const res = await getRecepciones(page, limit);
-      setData(res.items);
-      setTotal(res.total);
-    } catch {
-      toast("Error al cargar recepciones", "error");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchRecepciones();
-  }, [page]);
-
-  const confirmadas = data.filter((r) => r.estado?.toLowerCase() === "confirmada").length;
-  const pendientes = data.filter((r) => r.estado?.toLowerCase() === "pendiente").length;
+  const confirmadas = data.filter((r) => r.estado === "Confirmada").length;
+  const pendientes = data.filter((r) => r.estado === "Pendiente").length;
 
   const filtered = data.filter((r) => {
-    const matchSearch = !search || r.proveedor?.nombre?.toLowerCase().includes(search.toLowerCase());
-    const matchEstado = !filterEstado || r.estado?.toLowerCase() === filterEstado.toLowerCase();
+    const matchSearch = !search || r.proveedor.toLowerCase().includes(search.toLowerCase());
+    const matchEstado = !filterEstado || r.estado === filterEstado;
     return matchSearch && matchEstado;
   });
 
-  const totalRecepcion = (productos = []) =>
+  const totalRecepcion = (productos) =>
     productos.reduce((acc, p) => acc + p.cantidad * p.precioUnitario, 0);
 
   const handleOpen = (item = null) => {
     setEditItem(item);
-    setForm(item ? { proveedorId: item.proveedorId, fecha: item.fecha?.split("T")[0] } : emptyForm);
+    setForm(item ? { proveedor: item.proveedor, fecha: item.fecha } : emptyForm);
     setModalOpen(true);
   };
 
-  const handleSave = async () => {
-    if (!form.proveedorId || !form.fecha) {
+  const handleSave = () => {
+    if (!form.proveedor || !form.fecha) {
       toast("Completa todos los campos", "error");
       return;
     }
-    try {
-      if (editItem) {
-        await updateRecepcion(editItem.id, form);
-        toast("Recepción actualizada", "success");
-      } else {
-        await createRecepcion(form);
-        toast("Recepción creada", "success");
-      }
-      setModalOpen(false);
-      fetchRecepciones();
-    } catch (err) {
-      toast(err.response?.data?.message || "Error al guardar", "error");
+    if (editItem) {
+      setData(data.map((r) => r.id === editItem.id ? { ...r, ...form } : r));
+      toast("Recepción actualizada", "success");
+    } else {
+      setData([...data, { id: Date.now(), ...form, estado: "Pendiente", productos: [] }]);
+      toast("Recepción creada", "success");
     }
+    setModalOpen(false);
   };
 
-  const handleConfirmar = async (id) => {
-    try {
-      await confirmRecepcion(id);
-      toast("Recepción confirmada", "success");
-      fetchRecepciones();
-    } catch {
-      toast("Error al confirmar", "error");
-    }
+  const handleConfirmar = (id) => {
+    setData(data.map((r) => r.id === id ? { ...r, estado: "Confirmada" } : r));
+    toast("Recepción confirmada", "success");
   };
 
-  const handleEliminar = async (item) => {
-    if (!confirm(`¿Eliminar recepción de ${item.proveedor?.nombre || item.proveedorId}?`)) return;
-    try {
-      await deleteRecepcion(item.id);
-      toast("Recepción eliminada", "warning");
-      fetchRecepciones();
-    } catch {
-      toast("Error al eliminar", "error");
-    }
+  const handleEliminar = (item) => {
+    if (!confirm(`¿Eliminar recepción de ${item.proveedor}?`)) return;
+    setData(data.filter((r) => r.id !== item.id));
+    toast("Recepción eliminada", "warning");
   };
-
-  const totalPages = Math.ceil(total / limit);
 
   const columns = [
-    {
-      key: "proveedor",
-      label: "Proveedor",
-      render: (row) => row.proveedor?.nombre || row.proveedorId,
-    },
-    {
-      key: "fecha",
-      label: "Fecha",
-      render: (row) => row.fecha?.split("T")[0] || row.fecha,
-    },
+    { key: "proveedor", label: "Proveedor" },
+    { key: "fecha", label: "Fecha" },
     {
       key: "productos",
       label: "Productos",
-      render: (row) => `${row.productos?.length || 0} producto(s)`,
+      render: (row) => `${row.productos.length} producto(s)`,
     },
     {
       key: "total",
@@ -171,7 +138,7 @@ export default function Recepciones() {
         <div style={{ display: "flex", gap: "8px" }}>
           <Button variant="secondary" onClick={() => { setDetalleItem(row); setDetalleOpen(true); }}>Ver</Button>
           <Button variant="secondary" onClick={() => handleOpen(row)}>Editar</Button>
-          {row.estado?.toLowerCase() !== "confirmada" && (
+          {row.estado !== "Confirmada" && (
             <Button onClick={() => handleConfirmar(row.id)}>Confirmar</Button>
           )}
           <Button variant="danger" onClick={() => handleEliminar(row)}>Eliminar</Button>
@@ -198,7 +165,7 @@ export default function Recepciones() {
         <div>
           <h3 style={{ fontSize: "18px", fontWeight: "700", margin: 0 }}>Recepciones ByteStore</h3>
           <p style={{ fontSize: "13px", opacity: 0.8, margin: "4px 0 0" }}>
-            {total} recepciones · {confirmadas} confirmadas · {pendientes} pendientes
+            {data.length} recepciones · {confirmadas} confirmadas · {pendientes} pendientes
           </p>
         </div>
         <div style={{ display: "flex", gap: "12px" }}>
@@ -233,36 +200,18 @@ export default function Recepciones() {
       </div>
 
       {/* Tabla */}
-      {loading ? (
-        <div style={{ padding: "40px", display: "flex", justifyContent: "center" }}>
-          <Spinner />
-        </div>
-      ) : (
-        <Table columns={columns} data={filtered} />
-      )}
+      <Table columns={columns} data={filtered} />
 
-      {/* Paginación */}
-      {totalPages > 1 && (
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "12px" }}>
-          <span style={{ fontSize: "13px", color: "#40916c" }}>
-            Mostrando {(page - 1) * limit + 1} - {Math.min(page * limit, total)} de {total} recepciones
-          </span>
-          <div style={{ display: "flex", gap: "4px" }}>
-            <button disabled={page === 1} onClick={() => setPage((p) => p - 1)} style={{ ...selectStyle, padding: "5px 10px" }}>‹</button>
-            {Array.from({ length: totalPages }, (_, i) => (
-              <button key={i} onClick={() => setPage(i + 1)} style={{ ...selectStyle, padding: "5px 10px", background: page === i + 1 ? "#1b4332" : "white", color: page === i + 1 ? "white" : "#374151" }}>
-                {i + 1}
-              </button>
-            ))}
-            <button disabled={page === totalPages} onClick={() => setPage((p) => p + 1)} style={{ ...selectStyle, padding: "5px 10px" }}>›</button>
-          </div>
-        </div>
-      )}
+      <div style={{ marginTop: "12px" }}>
+        <span style={{ fontSize: "13px", color: "#40916c" }}>
+          Mostrando {filtered.length} de {data.length} recepciones
+        </span>
+      </div>
 
       {/* Modal Crear/Editar */}
       <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} title={editItem ? "Editar Recepción - ByteStore" : "Nueva Recepción - ByteStore"}>
         <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-          <Input label="ID Proveedor" value={form.proveedorId} onChange={f("proveedorId")} placeholder="ID del proveedor" />
+          <Input label="Proveedor" value={form.proveedor} onChange={f("proveedor")} placeholder="Nombre del proveedor" />
           <Input label="Fecha" type="date" value={form.fecha} onChange={f("fecha")} placeholder="" />
           <div style={{ display: "flex", justifyContent: "flex-end", gap: "8px", marginTop: "8px" }}>
             <Button variant="secondary" onClick={() => setModalOpen(false)}>CANCELAR</Button>
@@ -275,8 +224,8 @@ export default function Recepciones() {
       <Modal isOpen={detalleOpen} onClose={() => setDetalleOpen(false)} title="Detalle de Recepción">
         {detalleItem && (
           <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-            <p style={{ margin: 0, color: "#374151" }}><strong>Proveedor:</strong> {detalleItem.proveedor?.nombre || detalleItem.proveedorId}</p>
-            <p style={{ margin: 0, color: "#374151" }}><strong>Fecha:</strong> {detalleItem.fecha?.split("T")[0]}</p>
+            <p style={{ margin: 0, color: "#374151" }}><strong>Proveedor:</strong> {detalleItem.proveedor}</p>
+            <p style={{ margin: 0, color: "#374151" }}><strong>Fecha:</strong> {detalleItem.fecha}</p>
             <p style={{ margin: 0, color: "#374151" }}><strong>Estado:</strong> {detalleItem.estado}</p>
             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, marginTop: "8px" }}>
               <thead>
@@ -288,9 +237,9 @@ export default function Recepciones() {
                 </tr>
               </thead>
               <tbody>
-                {(detalleItem.productos || []).map((p, i) => (
+                {detalleItem.productos.map((p, i) => (
                   <tr key={i} style={{ borderBottom: "1px solid #f3f4f6" }}>
-                    <td style={{ padding: "8px 12px", color: "#111827" }}>{p.producto?.nombre || p.productoId}</td>
+                    <td style={{ padding: "8px 12px", color: "#111827" }}>{p.nombre}</td>
                     <td style={{ padding: "8px 12px", color: "#6b7280" }}>{p.cantidad}</td>
                     <td style={{ padding: "8px 12px", color: "#6b7280" }}>${p.precioUnitario}</td>
                     <td style={{ padding: "8px 12px", color: "#111827", fontWeight: 500 }}>${p.cantidad * p.precioUnitario}</td>
