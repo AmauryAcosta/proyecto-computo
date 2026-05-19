@@ -22,8 +22,22 @@ export default function App() {
             <Route path="/clientes" element={<ClientList />} />
             <Route path="/proveedores" element={<Proveedores />} />
             <Route path="/productos" element={<div>Productos</div>} />
-            <Route path="/inventario" element={<div>Inventario</div>} />
-            <Route path="/recepciones" element={<div>Recepciones</div>} />
+            <Route
+              path="/inventario"
+              element={
+                <div>
+                  <InventoryList />
+                </div>
+              }
+            />
+            <Route
+              path="/recepciones"
+              element={
+                <div>
+                  <Recepciones />
+                </div>
+              }
+            />
             <Route path="/auditoria" element={<div>Auditoría</div>} />
           </Route>
         </Route>
