@@ -97,8 +97,6 @@ export default function Topbar() {
             {action.label}
           </button>
         )}
-<<<<<<< HEAD
-=======
         {!ocultarSearch && (
           <div
             style={{
@@ -115,7 +113,6 @@ export default function Topbar() {
             🔍 Search
           </div>
         )}
->>>>>>> feature/recepciones
       </div>
     </header>
   );
