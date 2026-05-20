@@ -49,6 +49,9 @@ export default function Topbar() {
   const title = pageTitles[pathname] || "ByteStore";
   const puedeCrear = action && hasPermission(action.permiso);
 
+  // Rutas donde NO debe aparecer el Search
+  const ocultarSearch = pathname === "/recepciones";
+
   const handleAction = () => {
     if (action) document.dispatchEvent(new CustomEvent(action.event));
   };
@@ -94,6 +97,25 @@ export default function Topbar() {
             {action.label}
           </button>
         )}
+<<<<<<< HEAD
+=======
+        {!ocultarSearch && (
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+              backgroundColor: "#f3f4f6",
+              borderRadius: "8px",
+              padding: "6px 12px",
+              color: "#9ca3af",
+              fontSize: "14px",
+            }}
+          >
+            🔍 Search
+          </div>
+        )}
+>>>>>>> feature/recepciones
       </div>
     </header>
   );
