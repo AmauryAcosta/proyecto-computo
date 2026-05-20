@@ -3,15 +3,6 @@ import { useToast } from "../../components/ui/Toast";
 import Modal from "../../components/ui/Modal";
 import Button from "../../components/ui/Button";
 import Spinner from "../../components/ui/Spinner";
-import {
-  getRecepciones,
-  createRecepcion,
-  updateRecepcion,
-  confirmRecepcion,
-  deleteRecepcion,
-} from "../../api/recepciones";
-import { getSuppliers } from "../../api/suppliers";
-import { getProducts } from "../../api/products";
 
 // ==========================================
 // ESTILOS DE INTERFAZ GENERAL (UI)
@@ -62,12 +53,12 @@ const estadoCircle = (label, num, variant, currentFilter, onClick) => {
   const isSelected = currentFilter.toLowerCase() === label.toLowerCase() || (currentFilter === "" && label === "Todos");
 
   return (
-    <div 
+    <div
       onClick={onClick}
-      style={{ 
-        display: "flex", 
-        alignItems: "center", 
-        gap: "6px", 
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: "6px",
         cursor: "pointer",
         opacity: currentFilter && !isSelected ? 0.5 : 1,
         transition: "opacity 0.2s"
@@ -89,7 +80,7 @@ const estadoCircle = (label, num, variant, currentFilter, onClick) => {
 };
 
 // ==========================================
-// MAQUETA DE DATOS ORIGINAL (ByteStore)
+// DATOS DE EJEMPLO (ByteStore)
 // ==========================================
 const datosEjemplo = [
   {
@@ -98,7 +89,7 @@ const datosEjemplo = [
     proveedor: { id: "p1", nombre: "HP Mexico" },
     fecha: "20 abr 2026",
     estado: "Confirmada",
-    notas: "No hay notas",
+    notes: "No hay notas",
     productos: [
       { id: "pr1", producto: { id: "p_hp1", nombre: "Toner HP 58A", sku: "BS-0001" }, cantidad: 20, precioUnitario: 850 },
       { id: "pr2", producto: { id: "p_hp2", nombre: "Toner HP 58A", sku: "BS-0012" }, cantidad: 25, precioUnitario: 920 },
@@ -118,7 +109,10 @@ const datosEjemplo = [
     estado: "En proceso",
     notas: "Pendiente de revisar cajas físicas en almacén secundario.",
     productos: [
-      { id: "pr4", producto: { id: "p_hp1", nombre: "Toner HP 58A", sku: "BS-0001" }, cantidad: 5, precioUnitario: 850 }
+      { id: "pr4", producto: { id: "p_hp1", nombre: "Toner HP 58A", sku: "BS-0001" }, cantidad: 5, precioUnitario: 850 },
+      { id: "pr5", producto: { id: "p_hp1", nombre: "Toner HP 58A", sku: "BS-0001" }, cantidad: 20, precioUnitario: 850 },
+      { id: "pr6", producto: { id: "p_hp1", nombre: "Toner HP 58A", sku: "BS-0001" }, cantidad: 10, precioUnitario: 850 },
+      { id: "pr7", producto: { id: "p_hp1", nombre: "Toner HP 58A", sku: "BS-0001" }, cantidad: 15, precioUnitario: 850 }
     ],
     historial: [
       { texto: "Recepción creada como borrador", fecha: "20 de abril 2026 - 9:10", user: "juanp", color: "#4338ca" },
@@ -133,7 +127,7 @@ const datosEjemplo = [
     estado: "Borrador",
     notas: "Falta confirmar los precios de lista con el agente de ventas.",
     productos: [
-      { id: "pr5", producto: { id: "p_hp1", nombre: "Toner HP 58A", sku: "BS-0001" }, cantidad: 30, precioUnitario: 850 }
+      { id: "pr8", producto: { id: "p_hp1", nombre: "Toner HP 58A", sku: "BS-0001" }, cantidad: 30, precioUnitario: 850 }
     ],
     historial: [
       { texto: "Recepción creada como borrador", fecha: "20 de abril 2026 - 9:10", user: "juanp", color: "#4338ca", esUltimo: true }
@@ -147,7 +141,7 @@ const datosEjemplo = [
     estado: "Cancelada",
     notas: "Pedido duplicado por el sistema de compras automáticas.",
     productos: [
-      { id: "pr1", producto: { id: "p_hp1", nombre: "Toner HP 58A", sku: "BS-0001" }, cantidad: 10, precioUnitario: 850 }
+      { id: "pr9", producto: { id: "p_hp1", nombre: "Toner HP 58A", sku: "BS-0001" }, cantidad: 10, precioUnitario: 850 }
     ],
     historial: [
       { texto: "Recepción creada como borrador", fecha: "20 de abril 2026 - 9:10", user: "juanp", color: "#4338ca" },
@@ -162,19 +156,20 @@ export default function Recepciones() {
   const [loading, setLoading] = useState(true);
   const [suppliers, setSuppliers] = useState([]);
   const [products, setProducts] = useState([]);
+
   const [modalOpen, setModalOpen] = useState(false);
   const [detalleOpen, setDetalleOpen] = useState(false);
   const [confirmarOpen, setConfirmarOpen] = useState(false);
-  
+
   const [editItem, setEditItem] = useState(null);
   const [detalleItem, setDetalleItem] = useState(null);
   const [confirmarItem, setConfirmarItem] = useState(null);
-  
-  const [search, setSearch] = useState("");
+  const [confirmNotes, setConfirmNotes] = useState("");
+
   const [filterEstado, setFilterEstado] = useState("");
+  const [busqueda, setBusqueda] = useState("");
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
-  const limit = 10;
 
   const [form, setForm] = useState({
     proveedorId: "",
@@ -198,33 +193,59 @@ export default function Recepciones() {
 
   const fetchSuppliers = async () => {
     setSuppliers([
-      { id: "p1", nombre: "HP Mexico" }, { id: "p2", nombre: "Intel Latam" },
+      { id: "p1", nombre: "HP Mexico" },
+      { id: "p2", nombre: "Intel Latam" },
       { id: "p3", nombre: "Corsair Mexico" }
     ]);
   };
 
   const fetchProducts = async () => {
     setProducts([
-      { id: "p_hp1", nombre: "Toner HP 58A", sku: "BS-0001" },
-      { id: "p_hp2", nombre: "Toner HP 58A", sku: "BS-0012" },
-      { id: "p_hp3", nombre: "Toner HP 58A", sku: "BS-0020" }
+      { id: "p_hp1", nombre: "Monitor 24 FHD", sku: "BS-0001", precioUnitario: 3200 },
+      { id: "p_hp2", nombre: "Laptop Dell XPS 13", sku: "BS-0012", precioUnitario: 22000 },
+      { id: "p_hp3", nombre: "Teclado mecánico", sku: "BS-0020", precioUnitario: 1200 },
+      { id: "p_hp4", nombre: "Mouse inalámbrico", sku: "BS-0025", precioUnitario: 450 },
+      { id: "p_hp5", nombre: "Base refrigerante", sku: "BS-0030", precioUnitario: 780 },
     ]);
   };
 
   useEffect(() => { fetchRecepciones(); }, [page]);
   useEffect(() => { fetchSuppliers(); fetchProducts(); }, []);
 
+  // ── Escucha el evento del botón "+ Nueva Recepción" del Topbar ──
+  useEffect(() => {
+    const handler = () => handleOpen(null);
+    document.addEventListener("openNewRecepcion", handler);
+    return () => document.removeEventListener("openNewRecepcion", handler);
+  }, []);
+
   const confirmadas = data.filter((r) => r.estado?.toLowerCase() === "confirmada").length;
   const pendientes = data.filter((r) => r.estado?.toLowerCase() === "en proceso" || r.estado?.toLowerCase() === "pendiente").length;
 
   const filtered = data.filter((r) => {
-    const matchSearch = !search || r.proveedor?.nombre?.toLowerCase().includes(search.toLowerCase()) || r.folio?.toLowerCase().includes(search.toLowerCase());
     const matchEstado = !filterEstado || r.estado?.toLowerCase() === filterEstado.toLowerCase();
-    return matchSearch && matchEstado;
+    const matchBusqueda = !busqueda ||
+      r.folio?.toLowerCase().includes(busqueda.toLowerCase()) ||
+      r.proveedor?.nombre?.toLowerCase().includes(busqueda.toLowerCase());
+    return matchEstado && matchBusqueda;
   });
 
   const totalRecepcion = (productos = []) =>
     productos.reduce((acc, p) => acc + (p.cantidad * p.precioUnitario), 0);
+
+  const totalUnidades = (productos = []) =>
+    productos.reduce((acc, p) => acc + p.cantidad, 0);
+
+  const formatDate = (fecha = "") => {
+    if (!fecha) return "";
+    const isoMatch = fecha.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (isoMatch) {
+      const [, year, month, day] = isoMatch;
+      const meses = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
+      return `${Number(day)} ${meses[Number(month) - 1]} ${year}`;
+    }
+    return fecha;
+  };
 
   const handleOpen = (item = null) => {
     setEditItem(item);
@@ -232,8 +253,8 @@ export default function Recepciones() {
       proveedorId: item.proveedor?.id || item.proveedorId || "",
       fecha: item.fecha || "",
       notas: item.notas || "",
-      estado: item.estado || "Borrador", 
-      productos: item.productos && item.productos.length > 0 
+      estado: item.estado || "Borrador",
+      productos: item.productos && item.productos.length > 0
         ? item.productos.map(p => ({
             productoId: p.producto?.id || p.productoId || "",
             cantidad: p.cantidad || 0,
@@ -250,53 +271,97 @@ export default function Recepciones() {
     setModalOpen(true);
   };
 
+  const handleProductoChange = (index, field, value) => {
+    setForm((prev) => {
+      const productos = prev.productos.map((producto, idx) => {
+        if (idx !== index) return producto;
+        const updated = { ...producto, [field]: value };
+        if (field === "productoId") {
+          const selected = products.find((p) => p.id === value);
+          updated.precioUnitario = selected?.precioUnitario ?? updated.precioUnitario;
+        }
+        if (field === "cantidad") {
+          updated.cantidad = Number(value);
+        }
+        if (field === "precioUnitario") {
+          updated.precioUnitario = Number(value);
+        }
+        return updated;
+      });
+      return { ...prev, productos };
+    });
+  };
+
+  const agregarProducto = () => {
+    setForm((prev) => ({
+      ...prev,
+      productos: [...prev.productos, { productoId: "", cantidad: 1, precioUnitario: 0 }],
+    }));
+  };
+
+  const eliminarProducto = (index) => {
+    setForm((prev) => ({
+      ...prev,
+      productos: prev.productos.filter((_, idx) => idx !== index),
+    }));
+  };
+
   const handleSave = async () => {
     if (!form.proveedorId || !form.fecha) {
       toast("Completa los campos requeridos", "error");
       return;
     }
+
+    const productosSeleccionados = form.productos.filter((p) => p.productoId);
+    if (productosSeleccionados.length === 0) {
+      toast("Agrega al menos un producto", "error");
+      return;
+    }
+    if (productosSeleccionados.some((p) => p.cantidad <= 0)) {
+      toast("Asegura cantidades mayores a cero", "error");
+      return;
+    }
+    if (productosSeleccionados.some((p) => p.precioUnitario <= 0)) {
+      toast("Asegura un precio válido para cada producto", "error");
+      return;
+    }
+
+    const productosConDetalles = productosSeleccionados.map((fp) => ({
+      ...fp,
+      producto: products.find((p) => p.id === fp.productoId) || null,
+    }));
+
+    const proveedorSeleccionado = suppliers.find((s) => s.id === form.proveedorId) || { nombre: "Proveedor Temporal" };
+
     if (editItem) {
-      setData(data.map(d => d.id === editItem.id ? { ...d, ...form, proveedor: suppliers.find(s => s.id === form.proveedorId) } : d));
+      setData(data.map((d) =>
+        d.id === editItem.id
+          ? {
+              ...d,
+              ...form,
+              proveedor: proveedorSeleccionado,
+              productos: productosConDetalles,
+            }
+          : d
+      ));
       toast("Recepción actualizada con éxito", "success");
     } else {
       const nuevo = {
         id: data.length + 1,
         folio: `BS-R-${String(data.length + 1).padStart(4, "0")}`,
-        proveedor: suppliers.find(s => s.id === form.proveedorId) || { nombre: "Proveedor Temporal" },
+        proveedor: proveedorSeleccionado,
         fecha: form.fecha,
         estado: form.estado,
         notas: form.notas,
-        productos: form.productos.map(fp => ({
-          ...fp,
-          producto: products.find(p => p.id === fp.productoId)
-        })),
+        productos: productosConDetalles,
         historial: [
-          { texto: "Recepción creada como borrador", fecha: "Hoy", user: "admin", color: "#4338ca", esUltimo: true }
-        ]
+          { texto: "Recepción creada como borrador", fecha: "Hoy", user: "admin", color: "#4338ca", esUltimo: true },
+        ],
       };
       setData([nuevo, ...data]);
       toast("Recepción creada exitosamente", "success");
     }
     setModalOpen(false);
-  };
-
-  const handleConfirmar = async () => {
-    setData(data.map(d => {
-      if (d.id === confirmarItem.id) {
-        const historialPrevio = d.historial || [];
-        return { 
-          ...d, 
-          estado: "Confirmada",
-          historial: [
-            ...historialPrevio.map(h => ({ ...h, esUltimo: false })),
-            { texto: "Confirmada - stock actualizado automáticamente", fecha: "Ahora mismo", user: "admin", color: "#4caf50", esUltimo: true }
-          ]
-        };
-      }
-      return d;
-    }));
-    toast("Recepción confirmada — stock actualizado", "success");
-    setConfirmarOpen(false);
   };
 
   const handleEliminar = async (item) => {
@@ -305,7 +370,33 @@ export default function Recepciones() {
     toast("Recepción eliminada", "warning");
   };
 
-  const totalPages = Math.ceil(total / limit);
+  const abrirConfirmar = (item) => {
+    setConfirmarItem(item);
+    setConfirmNotes("");
+    setDetalleOpen(false);
+    setConfirmarOpen(true);
+  };
+
+  const handleConfirmar = async () => {
+    setData(data.map(d => {
+      if (d.id === confirmarItem.id) {
+        const historialPrevio = d.historial || [];
+        return {
+          ...d,
+          estado: "Confirmada",
+          notas: confirmNotes || d.notas,
+          historial: [
+            ...historialPrevio.map(h => ({ ...h, esUltimo: false })),
+            { texto: "Confirmada - stock actualizado automáticamente", fecha: "Ahora mismo", user: "admin", color: "#4caf50", esUltimo: true },
+          ],
+        };
+      }
+      return d;
+    }));
+    toast("Recepción confirmada — stock actualizado", "success");
+    setConfirmNotes("");
+    setConfirmarOpen(false);
+  };
 
   const renderAcciones = (row) => {
     const estado = row.estado?.toLowerCase();
@@ -320,7 +411,8 @@ export default function Recepciones() {
       return (
         <div style={{ display: "flex", gap: "8px" }}>
           <button onClick={() => { setDetalleItem(row); setDetalleOpen(true); }} style={{ ...selectStyle, padding: "4px 12px" }}>Ver</button>
-          <button onClick={() => { setConfirmarItem(row); setConfirmarOpen(true); }}
+          <button
+            onClick={() => abrirConfirmar(row)}
             style={{ padding: "4px 12px", borderRadius: "8px", border: "none", background: "#2d6a4f", color: "white", cursor: "pointer", fontSize: "13px", fontWeight: "600" }}>
             Confirmar
           </button>
@@ -330,7 +422,8 @@ export default function Recepciones() {
     return (
       <div style={{ display: "flex", gap: "8px" }}>
         <button onClick={() => handleOpen(row)} style={{ ...selectStyle, padding: "4px 12px" }}>Editar</button>
-        <button onClick={() => handleEliminar(row)}
+        <button
+          onClick={() => handleEliminar(row)}
           style={{ padding: "4px 12px", borderRadius: "8px", border: "1px solid #fca5a5", background: "white", color: "#dc2626", cursor: "pointer", fontSize: "13px" }}>
           Eliminar
         </button>
@@ -339,21 +432,12 @@ export default function Recepciones() {
   };
 
   return (
-    <div style={{ padding: "20px", fontFamily: "system-ui, -apple-system, sans-serif", backgroundColor: "#f9fafb", minHeight: "100vh" }}>
-      {/* Header */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
-        <h2 style={{ fontSize: "24px", fontWeight: "700", color: "#111827", margin: 0 }}>Recepciones</h2>
-        <button onClick={() => handleOpen(null)}
-          style={{ padding: "10px 16px", borderRadius: "8px", border: "none", background: "#1b4332", color: "white", fontWeight: "600", cursor: "pointer", fontSize: "14px" }}
-        >
-          + Nueva recepcion
-        </button>
-      </div>
+    <div style={{ fontFamily: "system-ui, -apple-system, sans-serif" }}>
 
       {/* KPI Panel */}
       <div style={{ background: "linear-gradient(135deg, #1b4332, #2d6a4f)", borderRadius: "12px", padding: "20px 24px", display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px", color: "white" }}>
         <div>
-          <h3 style={{ fontSize: "18px", fontWeight: "700", margin: 0 }}>Recepciones de mercancia</h3>
+          <h3 style={{ fontSize: "18px", fontWeight: "700", margin: 0 }}>Recepciones de mercancía</h3>
           <p style={{ fontSize: "13px", opacity: 0.8, margin: "4px 0 0" }}>
             {total} recepciones totales · {pendientes} pendiente de confirmar
           </p>
@@ -379,12 +463,16 @@ export default function Recepciones() {
         {estadoCircle("Cancelada", "✕", "cancelada", filterEstado, () => setFilterEstado("Cancelada"))}
       </div>
 
-      {/* Barra Buscar */}
-      <div style={{ display: "flex", gap: "12px", alignItems: "center", marginBottom: "16px", flexWrap: "wrap" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: "8px", border: "1px solid #d1d5db", borderRadius: "8px", padding: "7px 12px", background: "white", flex: 1, minWidth: "160px" }}>
-          <span style={{ color: "#9ca3af" }}>🔍</span>
-          <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar por proveedor o folio..." style={{ border: "none", outline: "none", fontSize: "13px", color: "#374151", width: "100%", background: "transparent" }} />
-        </div>
+      {/* Buscador */}
+      <div style={{ display: "flex", alignItems: "center", background: "white", border: "1px solid #e5e7eb", borderRadius: "8px", padding: "10px 14px", marginBottom: "20px", gap: "8px" }}>
+        <span style={{ color: "#9ca3af" }}>🔍</span>
+        <input
+          type="text"
+          value={busqueda}
+          onChange={(e) => setBusqueda(e.target.value)}
+          placeholder="Buscar por proveedor o folio..."
+          style={{ border: "none", outline: "none", width: "100%", fontSize: "14px", color: "#4b5563" }}
+        />
       </div>
 
       {/* Tabla Principal */}
@@ -408,7 +496,7 @@ export default function Recepciones() {
                   <tr key={row.id} style={{ borderBottom: "1px solid #f3f4f6" }}>
                     <td style={{ padding: "14px 16px", color: "#374151", fontWeight: 500 }}>{row.folio}</td>
                     <td style={{ padding: "14px 16px", color: "#111827" }}>{row.proveedor?.nombre}</td>
-                    <td style={{ padding: "14px 16px", color: "#6b7280" }}>{row.fecha}</td>
+                    <td style={{ padding: "14px 16px", color: "#6b7280" }}>{formatDate(row.fecha)}</td>
                     <td style={{ padding: "14px 16px" }}>{estadoBadge(row.estado)}</td>
                     <td style={{ padding: "14px 16px", color: "#6b7280" }}>{row.productos?.length || 0} artículos</td>
                     <td style={{ padding: "14px 16px" }}>{renderAcciones(row)}</td>
@@ -420,26 +508,22 @@ export default function Recepciones() {
         </div>
       )}
 
-      {/* MODAL DETALLES VISTA DE LECTURA */}
+      {/* ═══════════════════════════════════════════════
+          MODAL DETALLES — VISTA DE LECTURA
+      ═══════════════════════════════════════════════ */}
       <Modal isOpen={detalleOpen} onClose={() => setDetalleOpen(false)} title="">
         {detalleItem && (
           <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
-            
-            {/* Encabezado Superior */}
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingBottom: "12px", borderBottom: "1px solid #e5e7eb" }}>
               <div>
                 <span style={{ fontSize: "16px", fontWeight: "700", color: "#111827", display: "block" }}>Recepción {detalleItem.folio}</span>
                 <span style={{ fontSize: "12px", color: "#6b7280" }}>{detalleItem.proveedor?.nombre} - {detalleItem.estado} el 20 de abril 2026</span>
               </div>
-              <div>
-                {estadoBadge(detalleItem.estado)}
-              </div>
+              <div>{estadoBadge(detalleItem.estado)}</div>
             </div>
 
-            {/* Contenedor con Scroll de Lectura */}
             <div style={{ maxHeight: "58vh", overflowY: "auto", paddingRight: "8px", display: "flex", flexDirection: "column", gap: "16px" }}>
-              
-              {/* Información General */}
+              {/* Información general */}
               <div>
                 <h5 style={{ color: "#718096", fontSize: "11px", fontWeight: "700", textTransform: "uppercase", margin: "0 0 8px 0", letterSpacing: "0.05em" }}>INFORMACIÓN GENERAL</h5>
                 <hr style={{ border: "0", borderTop: "1px solid #e5e7eb", margin: "0 0 12px 0" }} />
@@ -450,17 +534,19 @@ export default function Recepciones() {
                   <div>
                     <span style={{ color: "#a0aec0", fontSize: "11px", display: "block", fontWeight: "600" }}>FECHA DE CONFIRMACIÓN</span>
                     <span style={{ color: "#2d3748", fontWeight: "500" }}>
-                      {detalleItem.estado?.toLowerCase() === "confirmada" ? "20 ABR 2026" : <span style={{ background: "#fff3e0", color: "#f57c00", padding: "2px 6px", borderRadius: "4px", fontSize: "11px" }}>En proceso</span>}
+                      {detalleItem.estado?.toLowerCase() === "confirmada"
+                        ? "20 ABR 2026"
+                        : <span style={{ background: "#fff3e0", color: "#f57c00", padding: "2px 6px", borderRadius: "4px", fontSize: "11px" }}>En proceso</span>}
                     </span>
                   </div>
                   <div><span style={{ color: "#a0aec0", fontSize: "11px", display: "block", fontWeight: "600" }}>CONFIRMADO POR</span><span style={{ color: "#2d3748", fontWeight: "500" }}>{detalleItem.estado?.toLowerCase() === "confirmada" ? "admin" : "—"}</span></div>
-                  <div><span style={{ color: "#a0aec0", fontSize: "11px", display: "block", fontWeight: "600" }}>TOTAL DE ARTÍCULOS</span><span style={{ color: "#2d3748", fontWeight: "500" }}>3 productos - 60 unidades</span></div>
+                  <div><span style={{ color: "#a0aec0", fontSize: "11px", display: "block", fontWeight: "600" }}>TOTAL DE ARTÍCULOS</span><span style={{ color: "#2d3748", fontWeight: "500" }}>{detalleItem.productos?.length} productos</span></div>
                 </div>
               </div>
 
-              {/* Información de la Tabla de Productos */}
+              {/* Productos */}
               <div>
-                <h5 style={{ color: "#718096", fontSize: "11px", fontWeight: "700", textTransform: "uppercase", margin: "10px 0 8px 0", letterSpacing: "0.05em" }}>INFORMACIÓN GENERAL</h5>
+                <h5 style={{ color: "#718096", fontSize: "11px", fontWeight: "700", textTransform: "uppercase", margin: "10px 0 8px 0", letterSpacing: "0.05em" }}>PRODUCTOS</h5>
                 <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "13px", border: "1px solid #e2e8f0", borderRadius: "8px", overflow: "hidden" }}>
                   <thead>
                     <tr style={{ background: "#e6f4ea", borderBottom: "1px solid #c8e6c9" }}>
@@ -486,25 +572,21 @@ export default function Recepciones() {
                 </div>
               </div>
 
-              {/* Historial de Estado (Línea de tiempo corregida y protegida con operador opcional) */}
+              {/* Historial */}
               <div>
                 <h5 style={{ color: "#718096", fontSize: "11px", fontWeight: "700", textTransform: "uppercase", margin: "10px 0 12px 0", letterSpacing: "0.05em" }}>HISTORIAL DE ESTADO</h5>
                 <hr style={{ border: "0", borderTop: "1px solid #e5e7eb", margin: "0 0 16px 0" }} />
                 <div style={{ display: "flex", flexDirection: "column", paddingLeft: "8px" }}>
                   {(detalleItem.historial || []).map((h, idx) => (
                     <div key={idx} style={{ display: "flex", gap: "16px", position: "relative", paddingBottom: "20px" }}>
-                      {/* Conector de línea vertical */}
                       {!h.esUltimo && (
                         <div style={{ position: "absolute", left: "11px", top: "24px", bottom: "0", width: "2px", backgroundColor: "#e2e8f0" }}></div>
                       )}
-                      {/* Nodo circular */}
                       <div style={{
                         width: "24px", height: "24px", borderRadius: "50%", backgroundColor: "white",
                         border: `2px solid ${h.color || "#cbd5e1"}`, display: "flex", alignItems: "center", justifyContent: "center",
                         fontSize: "11px", color: h.color || "#cbd5e1", fontWeight: "bold", zIndex: 2
-                      }}>
-                        ✓
-                      </div>
+                      }}>✓</div>
                       <div style={{ display: "flex", flexDirection: "column", gap: "2px", marginTop: "2px" }}>
                         <span style={{ fontSize: "13px", fontWeight: "600", color: "#2d3748" }}>{h.texto}</span>
                         <span style={{ fontSize: "11px", color: "#a0aec0" }}>{h.fecha} · {h.user}</span>
@@ -514,14 +596,6 @@ export default function Recepciones() {
                 </div>
               </div>
 
-              {/* Alerta Informativa (Si está En Proceso) */}
-              {detalleItem.estado?.toLowerCase() === "en proceso" && (
-                <div style={{ display: "flex", gap: "12px", background: "#fffide7", border: "1px solid #fff59d", padding: "12px", borderRadius: "8px", color: "#f57c00", fontSize: "13px", alignItems: "center" }}>
-                  <span style={{ fontSize: "16px" }}>ⓘ</span>
-                  <div>Esta recepción está en proceso. Una vez que llegue la mercancía, usa el botón "Confirmar" para actualizar el stock automáticamente.</div>
-                </div>
-              )}
-
               {/* Notas */}
               <div>
                 <h5 style={{ color: "#718096", fontSize: "11px", fontWeight: "700", textTransform: "uppercase", margin: "10px 0 6px 0", letterSpacing: "0.05em" }}>NOTAS</h5>
@@ -530,65 +604,232 @@ export default function Recepciones() {
                   {detalleItem.notes || detalleItem.notas || "No hay notas"}
                 </div>
               </div>
-
             </div>
 
-            {/* Panel de Botones */}
             <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px", borderTop: "1px solid #e5e7eb", paddingTop: "14px" }}>
-              <button 
-                onClick={() => setDetalleOpen(false)} 
-                style={{ border: "1px solid #cbd5e0", borderRadius: "6px", padding: "6px 18px", background: "white", color: "#4a5568", cursor: "pointer", fontSize: "13px", fontWeight: "500" }}
-              >
-                Cerrar
-              </button>
+              <button onClick={() => setDetalleOpen(false)} style={{ border: "1px solid #cbd5e0", borderRadius: "6px", padding: "6px 18px", background: "white", color: "#4a5568", cursor: "pointer", fontSize: "13px", fontWeight: "500" }}>Cerrar</button>
               {detalleItem.estado?.toLowerCase() === "en proceso" && (
-                <button 
-                  onClick={() => { setDetalleOpen(false); setConfirmarItem(detalleItem); setConfirmarOpen(true); }}
-                  style={{ padding: "6px 18px", borderRadius: "6px", border: "none", background: "#cbd5e0", color: "#2563eb", cursor: "pointer", fontSize: "13px", fontWeight: "600", display: "flex", alignItems: "center", gap: "4px" }}
-                >
+                <button
+                  onClick={() => abrirConfirmar(detalleItem)}
+                  style={{ border: "none", padding: "6px 18px", borderRadius: "6px", background: "#e8f5e9", color: "#2e7d32", cursor: "pointer", fontSize: "13px", fontWeight: "600", display: "flex", alignItems: "center", gap: "4px" }}>
                   Ir a confirmar →
                 </button>
               )}
             </div>
-
           </div>
         )}
       </Modal>
 
-      {/* MODAL CREAR / EDITAR */}
-      <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} title={editItem ? "Editar Recepción" : "Nueva Recepción"}>
-        <div style={{ display: "flex", flexDirection: "column", gap: "16px", padding: "10px" }}>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
-            <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-              <label style={{ fontSize: "12px", fontWeight: "600", color: "#4b5563" }}>Proveedor *</label>
-              <select value={form.proveedorId} onChange={(e) => setForm({ ...form, proveedorId: e.target.value })} style={selectStyle}>
-                <option value="">Seleccione un proveedor</option>
-                {suppliers.map(s => <option key={s.id} value={s.id}>{s.nombre}</option>)}
-              </select>
+      {/* ═══════════════════════════════════════════════
+          MODAL CREAR / EDITAR
+      ═══════════════════════════════════════════════ */}
+      <Modal
+        isOpen={modalOpen}
+        onClose={() => setModalOpen(false)}
+        title={editItem ? "Editar recepción" : "Nueva recepcion"}
+        subtitle="Se creará como borrador — podrás editarla antes de confirmar."
+      >
+        <div style={{ display: "flex", flexDirection: "column", gap: "18px" }}>
+          <div style={{ background: "#fff", borderRadius: "16px", padding: "22px", border: "1px solid #e5e7eb" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "18px" }}>
+              <div>
+                <span style={{ display: "block", fontSize: "11px", fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", color: "#4b5563" }}>Información general</span>
+              </div>
             </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-              <label style={{ fontSize: "12px", fontWeight: "600", color: "#4b5563" }}>Fecha *</label>
-              <input type="date" value={form.fecha} onChange={(e) => setForm({ ...form, fecha: e.target.value })} style={{ ...selectStyle, width: "90%" }} />
+            <hr style={{ border: 0, borderTop: "1px solid #e5e7eb", margin: "0 0 18px 0" }} />
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "18px" }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                <label style={{ fontSize: "12px", fontWeight: 700, color: "#0f172a" }}>Proveedor *</label>
+                <select value={form.proveedorId} onChange={(e) => setForm({ ...form, proveedorId: e.target.value })} style={selectStyle}>
+                  <option value="">Seleccione un proveedor</option>
+                  {suppliers.map((s) => <option key={s.id} value={s.id}>{s.nombre}</option>)}
+                </select>
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                <label style={{ fontSize: "12px", fontWeight: 700, color: "#0f172a" }}>Fecha estimada de llegada *</label>
+                <input type="date" value={form.fecha} onChange={(e) => setForm({ ...form, fecha: e.target.value })} style={{ ...selectStyle, width: "100%" }} />
+              </div>
+            </div>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: "8px", marginTop: "18px" }}>
+              <label style={{ fontSize: "12px", fontWeight: 700, color: "#0f172a" }}>Notas del pedido (opcional)</label>
+              <textarea
+                value={form.notas}
+                onChange={(e) => setForm({ ...form, notas: e.target.value })}
+                placeholder="Ej. entregar en bodega principal"
+                style={{ width: "100%", minHeight: "86px", borderRadius: "12px", border: "1px solid #d1d5db", padding: "12px", fontSize: "14px", color: "#334155", resize: "vertical", background: "white" }}
+              />
             </div>
           </div>
-          <div style={{ display: "flex", justifyContent: "flex-end", gap: "8px", marginTop: "12px", borderTop: "1px solid #e5e7eb", paddingTop: "12px" }}>
-            <Button onClick={() => setModalOpen(false)} variant="ghost">Cancelar</Button>
-            <Button onClick={handleSave} variant="primary">{editItem ? "Guardar cambios" : "Crear borrador"}</Button>
+
+          <div style={{ background: "#f3faf7", border: "1px solid #c7f3d9", borderRadius: "16px", padding: "20px" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "12px", marginBottom: "18px" }}>
+              <div>
+                <span style={{ display: "block", fontSize: "11px", fontWeight: 700, color: "#166534", letterSpacing: "0.08em", textTransform: "uppercase" }}>Productos a recibir</span>
+              </div>
+              <button
+                type="button"
+                onClick={agregarProducto}
+                style={{ padding: "10px 14px", borderRadius: "10px", border: "1px solid #bbf7d0", background: "#ecfdf5", color: "#166534", cursor: "pointer", fontSize: "13px", fontWeight: 700 }}
+              >
+                + Agregar producto
+              </button>
+            </div>
+
+            <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr auto", gap: "12px", padding: "12px 0", borderBottom: "1px solid #d1fae5", marginBottom: "12px", color: "#125e3c", fontSize: "12px", fontWeight: 700 }}>
+              <div>Producto</div>
+              <div>Cantidad *</div>
+              <div>Precio U.</div>
+              <div />
+            </div>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+              {form.productos.map((producto, index) => (
+                <div key={index} style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr auto", gap: "12px", alignItems: "end" }}>
+                  <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                    <select
+                      value={producto.productoId}
+                      onChange={(e) => handleProductoChange(index, "productoId", e.target.value)}
+                      style={{ ...selectStyle, width: "100%" }}
+                    >
+                      <option value="">Seleccionar un producto...</option>
+                      {products.map((p) => (
+                          <option key={p.id} value={p.id}>{`${p.nombre} — ${p.sku}`}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                    <input
+                      type="number"
+                      value={producto.cantidad}
+                      onChange={(e) => handleProductoChange(index, "cantidad", e.target.value)}
+                      min="1"
+                      style={{ ...selectStyle, width: "100%", textAlign: "center" }}
+                    />
+                  </div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                    <input
+                      type="number"
+                      value={producto.precioUnitario}
+                      onChange={(e) => handleProductoChange(index, "precioUnitario", e.target.value)}
+                      min="0"
+                      style={{ ...selectStyle, width: "100%", textAlign: "center" }}
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => eliminarProducto(index)}
+                    style={{ width: "44px", height: "34px", borderRadius: "10px", border: "1px solid #f8c0c0", background: "#fff1f2", color: "#b91c1c", cursor: "pointer", fontSize: "18px", lineHeight: 1, padding: 0 }}
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
+            </div>
+
+            <div style={{ marginTop: "16px", padding: "14px 16px", background: "#ecfdf5", borderRadius: "12px", border: "1px solid #d1fae5", color: "#166534", fontSize: "13px" }}>
+              ¿Qué pasa después? La recepción se guarda como borrador.
+            </div>
+          </div>
+
+          <div style={{ display: "flex", justifyContent: "flex-end", gap: "12px", paddingTop: "8px", borderTop: "1px solid #e5e7eb" }}>
+            <Button onClick={() => setModalOpen(false)} variant="secondary">Cancelar</Button>
+            <Button type="button" onClick={handleSave} variant="success">
+              {editItem ? "Guardar cambios" : "Crear recepción"}
+            </Button>
           </div>
         </div>
       </Modal>
 
-      {/* MODAL CONFIRMACIÓN */}
-      <Modal isOpen={confirmarOpen} onClose={() => setConfirmarOpen(false)} title="Confirmar Ingreso de Mercancía">
-        <div style={{ padding: "10px" }}>
-          <p>¿Estás seguro de que deseas consolidar la recepción <strong>{confirmarItem?.folio}</strong>?</p>
-          <p style={{ color: "#b91c1c", fontSize: "12px" }}>Esta acción aumentará el stock de inventario automáticamente y no se podrá revertir.</p>
-          <div style={{ display: "flex", justifyContent: "flex-end", gap: "8px", marginTop: "16px" }}>
-            <Button onClick={() => setConfirmarOpen(false)} variant="ghost">Atrás</Button>
-            <Button onClick={handleConfirmar} variant="primary">Efectuar Confirmación</Button>
+      {/* ═══════════════════════════════════════════════
+          MODAL: CONFIRMAR INGRESO
+      ═══════════════════════════════════════════════ */}
+      <Modal isOpen={confirmarOpen} onClose={() => setConfirmarOpen(false)} title="">
+        {confirmarItem && (
+          <div style={{ display: "flex", flexDirection: "column", gap: "16px", fontFamily: "system-ui, sans-serif" }}>
+            {/* Header */}
+            <div style={{ paddingBottom: "10px", borderBottom: "1px solid #e5e7eb" }}>
+              <h4 style={{ margin: 0, fontSize: "16px", fontWeight: "700", color: "#111827" }}>Recepcion {confirmarItem.folio}</h4>
+              <span style={{ fontSize: "12px", color: "#6b7280" }}>{confirmarItem.folio} - {confirmarItem.proveedor?.nombre}</span>
+            </div>
+
+            {/* KPIs */}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "14px" }}>
+              <div style={{ background: "#e0f2fe", padding: "14px", borderRadius: "8px", textAlign: "center" }}>
+                <span style={{ display: "block", fontSize: "20px", fontWeight: "700", color: "#0369a1" }}>{confirmarItem.productos?.length || 0}</span>
+                <span style={{ fontSize: "11px", color: "#0284c7", fontWeight: "500" }}>Productos</span>
+              </div>
+              <div style={{ background: "#e0f2fe", padding: "14px", borderRadius: "8px", textAlign: "center" }}>
+                <span style={{ display: "block", fontSize: "20px", fontWeight: "700", color: "#0369a1" }}>{totalUnidades(confirmarItem.productos)}</span>
+                <span style={{ fontSize: "11px", color: "#0284c7", fontWeight: "500" }}>Unidades Totales</span>
+              </div>
+              <div style={{ background: "#e0f2fe", padding: "14px", borderRadius: "8px", textAlign: "center" }}>
+                <span style={{ display: "block", fontSize: "20px", fontWeight: "700", color: "#15803d" }}>${totalRecepcion(confirmarItem.productos).toLocaleString()}</span>
+                <span style={{ fontSize: "11px", color: "#16a34a", fontWeight: "500" }}>Valor Total</span>
+              </div>
+            </div>
+
+            {/* Info box */}
+            <div style={{ background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: "8px", padding: "14px", display: "flex", gap: "10px", alignItems: "start" }}>
+              <div style={{ background: "#dcfce7", color: "#16a34a", borderRadius: "50%", width: "20px", height: "20px", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: "700", fontSize: "12px", flexShrink: 0 }}>✓</div>
+              <div style={{ fontSize: "12px", color: "#166534", lineHeight: "1.5" }}>
+                <strong style={{ display: "block", marginBottom: "4px", color: "#14532d" }}>Al confirmar sucede esto automáticamente:</strong>
+                <div>✓ El stock de cada producto aumenta con las cantidades de esta recepción</div>
+                <div>✓ Se registra en el módulo de Auditoría</div>
+                <div>✓ La recepción cambia a estado <strong>Confirmada</strong> y no se puede editar</div>
+                <div>✓ Se registra quién confirmó y a qué hora</div>
+              </div>
+            </div>
+
+            {/* Tabla de productos */}
+            <div>
+              <span style={{ fontSize: "11px", fontWeight: "700", color: "#4b5563", textTransform: "uppercase", display: "block", marginBottom: "6px" }}>Verificar cantidades recibidas</span>
+              <div style={{ border: "1px solid #e5e7eb", borderRadius: "8px", overflow: "hidden", maxHeight: "160px", overflowY: "auto" }}>
+                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "12px" }}>
+                  <thead>
+                    <tr style={{ background: "#e6f4ea", borderBottom: "1px solid #d1fae5", position: "sticky", top: 0 }}>
+                      <th style={{ padding: "8px 12px", textAlign: "left", color: "#065f46" }}>Producto</th>
+                      <th style={{ padding: "8px 12px", textAlign: "left", color: "#065f46" }}>Precio</th>
+                      <th style={{ padding: "8px 12px", textAlign: "left", color: "#065f46" }}>Recibido</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {confirmarItem.productos?.map((p, i) => (
+                      <tr key={i} style={{ borderBottom: "1px solid #f3f4f6" }}>
+                        <td style={{ padding: "8px 12px", fontWeight: "600", color: "#1f2937" }}>{p.producto?.nombre || "Sin nombre"}</td>
+                        <td style={{ padding: "8px 12px", color: "#4b5563" }}>${p.precioUnitario}</td>
+                        <td style={{ padding: "8px 12px", color: "#1f2937", fontWeight: "600" }}>{p.cantidad}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Notas */}
+            <div>
+              <span style={{ fontSize: "11px", fontWeight: "700", color: "#4b5563", textTransform: "uppercase", display: "block", marginBottom: "6px" }}>Notas de confirmación (Opcional)</span>
+              <textarea
+                value={confirmNotes}
+                onChange={(e) => setConfirmNotes(e.target.value)}
+                placeholder="No hay notas"
+                style={{ width: "95%", height: "45px", borderRadius: "8px", border: "1px solid #e5e7eb", background: "#f0fdf4", padding: "10px", fontSize: "12px", color: "#374151", resize: "none" }}
+              />
+            </div>
+
+            {/* Acciones */}
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px", borderTop: "1px solid #e5e7eb", paddingTop: "12px" }}>
+              <button onClick={() => setConfirmarOpen(false)} style={{ border: "1px solid #cbd5e1", borderRadius: "6px", padding: "6px 16px", background: "white", color: "#334155", cursor: "pointer", fontSize: "13px" }}>Cancelar</button>
+              <button
+                onClick={handleConfirmar}
+                style={{ border: "1px solid #bbf7d0", borderRadius: "6px", padding: "6px 16px", background: "#dcfce7", color: "#15803d", cursor: "pointer", fontSize: "13px", fontWeight: "600", display: "flex", alignItems: "center", gap: "4px" }}>
+                Confirmar ingreso →
+              </button>
+            </div>
           </div>
-        </div>
+        )}
       </Modal>
+
     </div>
   );
 }

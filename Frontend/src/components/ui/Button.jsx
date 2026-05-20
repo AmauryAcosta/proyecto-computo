@@ -2,7 +2,9 @@ export default function Button({ children, onClick, type = "button", variant = "
   const styles = {
     primary: { background: "#1b4332", color: "white", border: "none" },
     secondary: { background: "white", color: "#374151", border: "1px solid #d1d5db" },
+    success: { background: "#10b981", color: "white", border: "none" },
     danger: { background: "white", color: "#dc2626", border: "1px solid #fca5a5" },
+    ghost: { background: "white", color: "#374151", border: "1px solid #d1d5db" },
   };
   return (
     <button
