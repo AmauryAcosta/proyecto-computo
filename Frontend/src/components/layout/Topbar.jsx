@@ -49,7 +49,7 @@ export default function Topbar() {
   const title = pageTitles[pathname] || "ByteStore";
   const puedeCrear = action && hasPermission(action.permiso);
 
-  // Rutas donde NO debe aparecer el Search
+ 
   const ocultarSearch = pathname === "/recepciones";
 
   const handleAction = () => {
