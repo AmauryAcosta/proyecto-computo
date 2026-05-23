@@ -4,9 +4,6 @@ import Modal from "../../components/ui/Modal";
 import Button from "../../components/ui/Button";
 import Spinner from "../../components/ui/Spinner";
 
-// ==========================================
-// ESTILOS DE INTERFAZ GENERAL (UI)
-// ==========================================
 const selectStyle = {
   border: "1px solid #d1d5db",
   borderRadius: "8px",
@@ -79,9 +76,7 @@ const estadoCircle = (label, num, variant, currentFilter, onClick) => {
   );
 };
 
-// ==========================================
-// DATOS DE EJEMPLO (ByteStore)
-// ==========================================
+
 const datosEjemplo = [
   {
     id: 1,
@@ -212,7 +207,6 @@ export default function Recepciones() {
   useEffect(() => { fetchRecepciones(); }, [page]);
   useEffect(() => { fetchSuppliers(); fetchProducts(); }, []);
 
-  // ── Escucha el evento del botón "+ Nueva Recepción" del Topbar ──
   useEffect(() => {
     const handler = () => handleOpen(null);
     document.addEventListener("openNewRecepcion", handler);
@@ -434,7 +428,6 @@ export default function Recepciones() {
   return (
     <div style={{ fontFamily: "system-ui, -apple-system, sans-serif" }}>
 
-      {/* KPI Panel */}
       <div style={{ background: "linear-gradient(135deg, #1b4332, #2d6a4f)", borderRadius: "12px", padding: "20px 24px", display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px", color: "white" }}>
         <div>
           <h3 style={{ fontSize: "18px", fontWeight: "700", margin: 0 }}>Recepciones de mercancía</h3>
@@ -454,7 +447,7 @@ export default function Recepciones() {
         </div>
       </div>
 
-      {/* Filtros */}
+      
       <div style={{ display: "flex", gap: "20px", marginBottom: "20px", flexWrap: "wrap", background: "white", padding: "12px", borderRadius: "8px", border: "1px solid #e5e7eb" }}>
         {estadoCircle("Todos", "•", "default", filterEstado, () => setFilterEstado(""))}
         {estadoCircle("Borrador", 1, "borrador", filterEstado, () => setFilterEstado("Borrador"))}
@@ -463,7 +456,7 @@ export default function Recepciones() {
         {estadoCircle("Cancelada", "✕", "cancelada", filterEstado, () => setFilterEstado("Cancelada"))}
       </div>
 
-      {/* Buscador */}
+      
       <div style={{ display: "flex", alignItems: "center", background: "white", border: "1px solid #e5e7eb", borderRadius: "8px", padding: "10px 14px", marginBottom: "20px", gap: "8px" }}>
         <span style={{ color: "#9ca3af" }}>🔍</span>
         <input
@@ -475,7 +468,7 @@ export default function Recepciones() {
         />
       </div>
 
-      {/* Tabla Principal */}
+      
       {loading ? (
         <div style={{ padding: "40px", display: "flex", justifyContent: "center" }}><Spinner /></div>
       ) : (
@@ -508,9 +501,7 @@ export default function Recepciones() {
         </div>
       )}
 
-      {/* ═══════════════════════════════════════════════
-          MODAL DETALLES — VISTA DE LECTURA
-      ═══════════════════════════════════════════════ */}
+      
       <Modal isOpen={detalleOpen} onClose={() => setDetalleOpen(false)} title="">
         {detalleItem && (
           <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
@@ -544,7 +535,7 @@ export default function Recepciones() {
                 </div>
               </div>
 
-              {/* Productos */}
+              
               <div>
                 <h5 style={{ color: "#718096", fontSize: "11px", fontWeight: "700", textTransform: "uppercase", margin: "10px 0 8px 0", letterSpacing: "0.05em" }}>PRODUCTOS</h5>
                 <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "13px", border: "1px solid #e2e8f0", borderRadius: "8px", overflow: "hidden" }}>
@@ -572,7 +563,7 @@ export default function Recepciones() {
                 </div>
               </div>
 
-              {/* Historial */}
+              
               <div>
                 <h5 style={{ color: "#718096", fontSize: "11px", fontWeight: "700", textTransform: "uppercase", margin: "10px 0 12px 0", letterSpacing: "0.05em" }}>HISTORIAL DE ESTADO</h5>
                 <hr style={{ border: "0", borderTop: "1px solid #e5e7eb", margin: "0 0 16px 0" }} />
@@ -596,7 +587,7 @@ export default function Recepciones() {
                 </div>
               </div>
 
-              {/* Notas */}
+              
               <div>
                 <h5 style={{ color: "#718096", fontSize: "11px", fontWeight: "700", textTransform: "uppercase", margin: "10px 0 6px 0", letterSpacing: "0.05em" }}>NOTAS</h5>
                 <hr style={{ border: "0", borderTop: "1px solid #e5e7eb", margin: "0 0 10px 0" }} />
@@ -620,9 +611,7 @@ export default function Recepciones() {
         )}
       </Modal>
 
-      {/* ═══════════════════════════════════════════════
-          MODAL CREAR / EDITAR
-      ═══════════════════════════════════════════════ */}
+      
       <Modal
         isOpen={modalOpen}
         onClose={() => setModalOpen(false)}
@@ -741,9 +730,7 @@ export default function Recepciones() {
         </div>
       </Modal>
 
-      {/* ═══════════════════════════════════════════════
-          MODAL: CONFIRMAR INGRESO
-      ═══════════════════════════════════════════════ */}
+      
       <Modal isOpen={confirmarOpen} onClose={() => setConfirmarOpen(false)} title="">
         {confirmarItem && (
           <div style={{ display: "flex", flexDirection: "column", gap: "16px", fontFamily: "system-ui, sans-serif" }}>
@@ -781,7 +768,7 @@ export default function Recepciones() {
               </div>
             </div>
 
-            {/* Tabla de productos */}
+            
             <div>
               <span style={{ fontSize: "11px", fontWeight: "700", color: "#4b5563", textTransform: "uppercase", display: "block", marginBottom: "6px" }}>Verificar cantidades recibidas</span>
               <div style={{ border: "1px solid #e5e7eb", borderRadius: "8px", overflow: "hidden", maxHeight: "160px", overflowY: "auto" }}>
@@ -806,7 +793,7 @@ export default function Recepciones() {
               </div>
             </div>
 
-            {/* Notas */}
+            
             <div>
               <span style={{ fontSize: "11px", fontWeight: "700", color: "#4b5563", textTransform: "uppercase", display: "block", marginBottom: "6px" }}>Notas de confirmación (Opcional)</span>
               <textarea
