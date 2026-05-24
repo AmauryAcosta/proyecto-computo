@@ -12,6 +12,7 @@ import InventoryList from "./pages/inventory/InventoryList";
 import NotFound from "./pages/errors/NotFound";
 import Unauthorized from "./pages/errors/Unauthorized";
 import Forbidden from "./pages/errors/Forbidden";
+import AuditList from "./pages/audit/AuditList";
 
 export default function App() {
   return (
@@ -48,7 +49,7 @@ export default function App() {
                   </div>
                 }
               />
-              <Route path="/auditoria" element={<div>Auditoría</div>} />
+              <Route path="/auditoria" element={<AuditList />} />
             </Route>
           </Route>
 
