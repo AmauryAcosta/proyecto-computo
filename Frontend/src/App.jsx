@@ -12,6 +12,7 @@ import InventoryList from "./pages/inventory/InventoryList";
 import NotFound from "./pages/errors/NotFound";
 import Unauthorized from "./pages/errors/Unauthorized";
 import Forbidden from "./pages/errors/Forbidden";
+import ProductList from "./pages/products/ProductsList";
 
 export default function App() {
   return (
@@ -19,6 +20,7 @@ export default function App() {
       <BrowserRouter>
         <Routes>
           <Route path="/login" element={<Login />} />
+          <Route path="/" element={<Navigate to="/dashboard" replace />} />
 
           {/* Páginas de error — accesibles sin autenticación */}
           <Route path="/401" element={<Unauthorized />} />
@@ -31,7 +33,7 @@ export default function App() {
               <Route path="/usuarios" element={<UserList />} />
               <Route path="/clientes" element={<ClientList />} />
               <Route path="/proveedores" element={<Proveedores />} />
-              <Route path="/productos" element={<div>Productos</div>} />
+              <Route path="/productos" element={<ProductList />} />
               <Route
                 path="/inventario"
                 element={
