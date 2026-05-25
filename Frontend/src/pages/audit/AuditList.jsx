@@ -40,7 +40,7 @@ const ACTION_LABELS = {
   CREATE: "creó",
   UPDATE: "actualizó",
   DELETE: "eliminó",
-  TOGGLE_ACTIVE: "cambió estado de",
+  TOGGLE_ACTIVE: "cambió estado en",
   LOGIN: "inició sesión en",
 };
 
@@ -59,7 +59,6 @@ export default function AuditList() {
   const [total, setTotal] = useState(0);
   const [filterAction, setFilterAction] = useState("");
   const [filterResource, setFilterResource] = useState("");
-  const [filterUser, setFilterUser] = useState("");
   const [detailOpen, setDetailOpen] = useState(false);
   const [selectedLog, setSelectedLog] = useState(null);
   const [loadingDetail, setLoadingDetail] = useState(false);
@@ -93,14 +92,10 @@ export default function AuditList() {
     }
   };
 
-  // Usuarios únicos para el filtro
-  const uniqueUsers = [...new Set(logs.map(l => l.usuario).filter(Boolean))];
-
   const filtered = logs.filter(l => {
-    const matchUser = !filterUser || l.usuario === filterUser;
     const matchAction = !filterAction || l.action === filterAction;
     const matchResource = !filterResource || l.resource === filterResource;
-    return matchUser && matchAction && matchResource;
+    return matchAction && matchResource;
   });
 
   const totalPages = Math.ceil(total / limit);
@@ -116,16 +111,12 @@ export default function AuditList() {
         </div>
         <div style={{ background: "rgba(255,255,255,0.15)", borderRadius: "8px", padding: "10px 20px", textAlign: "center" }}>
           <div style={{ fontSize: "22px", fontWeight: "700" }}>{total.toLocaleString()}</div>
-          <div style={{ fontSize: "11px", opacity: 0.8 }}>Eventos hoy</div>
+          <div style={{ fontSize: "11px", opacity: 0.8 }}>Total registros</div>
         </div>
       </div>
 
-      {/* Filtros */}
+      {/* Filtros — solo recursos y acciones */}
       <div style={{ display: "flex", gap: "12px", alignItems: "center", marginBottom: "16px", flexWrap: "wrap" }}>
-        <select value={filterUser} onChange={e => setFilterUser(e.target.value)} style={selectStyle}>
-          <option value="">Todos los Usuarios</option>
-          {uniqueUsers.map(u => <option key={u} value={u}>{u}</option>)}
-        </select>
         <select value={filterResource} onChange={e => setFilterResource(e.target.value)} style={selectStyle}>
           <option value="">Todos los recursos</option>
           {Object.entries(RESOURCE_LABELS).map(([key, label]) => (
@@ -133,15 +124,14 @@ export default function AuditList() {
           ))}
         </select>
         <select value={filterAction} onChange={e => setFilterAction(e.target.value)} style={selectStyle}>
-          <option value="">Todos las acciones</option>
-          <option value="CREATE">CREATE</option>
-          <option value="UPDATE">UPDATE</option>
-          <option value="DELETE">DELETE</option>
-          <option value="TOGGLE_ACTIVE">TOGGLE_ACTIVE</option>
+          <option value="">Todas las acciones</option>
+          <option value="CREATE">Creación</option>
+          <option value="UPDATE">Actualización</option>
+          <option value="DELETE">Eliminación</option>
+          <option value="TOGGLE_ACTIVE">Cambio de estado</option>
         </select>
       </div>
 
-      {/* Tabla */}
       {loading ? (
         <div style={{ padding: "40px", display: "flex", justifyContent: "center" }}><Spinner /></div>
       ) : (
@@ -149,25 +139,21 @@ export default function AuditList() {
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "13px" }}>
             <thead>
               <tr style={{ background: "#f0fdf4", borderBottom: "1px solid #e5e7eb" }}>
-                {["Fecha", "Hora", "Usuario", "Acción", "Recurso"].map(h => (
+                {["Fecha", "Usuario", "Acción", "Recurso", "Detalles"].map(h => (
                   <th key={h} style={{ padding: "12px 16px", textAlign: "left", fontSize: "12px", fontWeight: "600", color: "#40916c" }}>{h}</th>
                 ))}
-                <th style={{ padding: "12px 16px" }}></th>
               </tr>
             </thead>
             <tbody>
               {filtered.length === 0 ? (
-                <tr><td colSpan={6} style={{ textAlign: "center", padding: "40px", color: "#9ca3af" }}>Sin registros</td></tr>
+                <tr><td colSpan={5} style={{ textAlign: "center", padding: "40px", color: "#9ca3af" }}>Sin registros</td></tr>
               ) : filtered.map((row, i) => {
                 const fecha = row.createdAt ? new Date(row.createdAt) : null;
                 const rc = RESOURCE_COLORS[row.resource] || { bg: "#f3f4f6", color: "#374151" };
                 return (
                   <tr key={row.id} style={{ borderBottom: "1px solid #f3f4f6", background: i % 2 === 0 ? "white" : "#fafafa" }}>
-                    <td style={{ padding: "12px 16px", color: "#374151" }}>
-                      {fecha ? fecha.toLocaleDateString("es-MX", { day: "numeric", month: "short", year: "numeric" }) : "—"}
-                    </td>
-                    <td style={{ padding: "12px 16px", color: "#6b7280" }}>
-                      {fecha ? fecha.toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" }) : "—"}
+                    <td style={{ padding: "12px 16px", color: "#374151", whiteSpace: "nowrap" }}>
+                      {fecha ? `${fecha.toLocaleDateString("es-MX", { day: "numeric", month: "short", year: "numeric" })} ${fecha.toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" })}` : "—"}
                     </td>
                     <td style={{ padding: "12px 16px", fontWeight: "500", color: "#111827" }}>{row.usuario || "—"}</td>
                     <td style={{ padding: "12px 16px", color: "#374151" }}>{getActionText(row)}</td>
@@ -190,7 +176,6 @@ export default function AuditList() {
         </div>
       )}
 
-      {/* Paginación */}
       {totalPages > 1 && (
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "12px", padding: "0 4px" }}>
           <span style={{ fontSize: "13px", color: "#40916c" }}>Mostrando {(page-1)*limit+1} - {Math.min(page*limit, total)} de {total} registros</span>
@@ -206,7 +191,6 @@ export default function AuditList() {
         </div>
       )}
 
-      {/* Modal detalle */}
       <Modal isOpen={detailOpen} onClose={() => setDetailOpen(false)} title="Detalle de Auditoría">
         {loadingDetail ? (
           <div style={{ display: "flex", justifyContent: "center", padding: "24px" }}><Spinner /></div>

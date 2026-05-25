@@ -97,22 +97,6 @@ export default function Topbar() {
             {action.label}
           </button>
         )}
-        {!ocultarSearch && (
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "8px",
-              backgroundColor: "#f3f4f6",
-              borderRadius: "8px",
-              padding: "6px 12px",
-              color: "#9ca3af",
-              fontSize: "14px",
-            }}
-          >
-            🔍 Search
-          </div>
-        )}
       </div>
     </header>
   );
