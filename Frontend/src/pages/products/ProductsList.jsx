@@ -251,12 +251,7 @@ export default function ProductList() {
           <Button variant="secondary" onClick={() => handleOpen(row)}>
             Editar
           </Button>
-          <Button
-            variant={row.activo ? "danger" : "success"}
-            onClick={() => handleToggle(row)}
-          >
-            {row.activo ? "Desactivar" : "Activar"}
-          </Button>
+
           <Button variant="danger" onClick={() => handleDelete(row)}>
             Eliminar
           </Button>
