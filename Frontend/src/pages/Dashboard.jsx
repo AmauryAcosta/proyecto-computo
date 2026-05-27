@@ -1,24 +1,24 @@
-/* export default function Dashboard() {
-  return (
-    <div className="min-h-screen flex items-center justify-center">
-      <h1 className="text-emerald-400 text-3xl font-bold">Dashboard</h1>
-    </div>
-  );
-} */
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { getDashboardSummary } from "../api/dashboards";
 import { useAuth } from "../context/AuthContext";
 import Spinner from "../components/ui/Spinner";
 import { useToast } from "../components/ui/Toast";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+} from "recharts";
 
 const actionLabels = {
   CREATE: "creado",
   UPDATE: "actualizado",
   DELETE: "eliminado",
 };
-
 const resourceLabels = {
   products: "Producto",
   users: "Usuario",
@@ -38,38 +38,45 @@ function timeAgo(dateStr) {
   return `Hace ${Math.floor(diff / 86400)} días`;
 }
 
-function StatCard({ icon, label, value, sub, bg }) {
+function StatCard({ letra, label, value, sub, bg, borderColor, iconColor }) {
   return (
     <div
       style={{
         background: "white",
         borderRadius: "12px",
         border: "1px solid #e5e7eb",
-        padding: "16px 20px",
+        overflow: "hidden",
         display: "flex",
         flexDirection: "column",
-        gap: "8px",
       }}
     >
+      {/* Bloque de color superior con el icono */}
       <div
         style={{
-          width: "40px",
-          height: "40px",
-          borderRadius: "8px",
           background: bg,
+          padding: "16px 20px",
           display: "flex",
           alignItems: "center",
-          justifyContent: "center",
-          fontSize: "20px",
         }}
       >
-        {icon}
+        <span style={{ fontSize: "24px" }}>{letra}</span>
       </div>
-      <div style={{ fontSize: "13px", color: "#6b7280" }}>{label}</div>
-      <div style={{ fontSize: "24px", fontWeight: "700", color: "#111827" }}>
-        {value}
+
+      {/* Contenido */}
+      <div
+        style={{
+          padding: "12px 20px 16px",
+          display: "flex",
+          flexDirection: "column",
+          gap: "6px",
+        }}
+      >
+        <div style={{ fontSize: "13px", color: "#6b7280" }}>{label}</div>
+        <div style={{ fontSize: "24px", fontWeight: "700", color: "#111827" }}>
+          {value}
+        </div>
+        {sub && <div style={{ fontSize: "12px", color: "#9ca3af" }}>{sub}</div>}
       </div>
-      {sub && <div style={{ fontSize: "12px", color: "#9ca3af" }}>{sub}</div>}
     </div>
   );
 }
@@ -106,6 +113,16 @@ export default function Dashboard() {
     recentInventoryMovements,
     recepcionesRecientes,
   } = data;
+
+  // ← aquí adentro del componente
+  const movimientosChart = recentInventoryMovements
+    .slice(0, 6)
+    .map((mov, i) => ({
+      name: `Mov ${i + 1}`,
+      Entradas: mov.tipo === "ENTRADA" ? mov.cantidad : 0,
+      Salidas: mov.tipo === "SALIDA" ? mov.cantidad : 0,
+      Ajustes: mov.tipo === "AJUSTE" ? mov.cantidad : 0,
+    }));
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
@@ -177,32 +194,40 @@ export default function Dashboard() {
         }}
       >
         <StatCard
-          icon="👤"
+          letra="👤"
           label="Usuarios activos"
           value={totals.activeUsers}
           sub={`${totals.users} registrados`}
           bg="#e0f2fe"
+          borderColor="#38bdf8"
+          iconColor="#0369a1"
         />
         <StatCard
-          icon="📋"
+          letra="📋"
           label="Clientes"
           value={totals.activeClients}
           sub={`${totals.clients} registrados`}
           bg="#dcfce7"
+          borderColor="#4ade80"
+          iconColor="#15803d"
         />
         <StatCard
-          icon="🛍️"
+          letra="🛍️"
           label="Productos"
           value={totals.activeProducts}
           sub={`${data.lowStockCount} bajo stock`}
           bg="#fef9c3"
+          borderColor="#facc15"
+          iconColor="#d97706"
         />
         <StatCard
-          icon="📅"
+          letra="📅"
           label="Recepciones"
           value={totals.recepciones}
           sub={`${recepcionesRecientes?.length || 0} recientes`}
           bg="#fee2e2"
+          borderColor="#f87171"
+          iconColor="#dc2626"
         />
       </div>
 
@@ -244,55 +269,159 @@ export default function Dashboard() {
             </button>
           </div>
           <p style={{ fontSize: "12px", color: "#9ca3af", margin: "0 0 16px" }}>
-            Últimos movimientos del sistema
+            Entradas y salidas · últimos movimientos
           </p>
-          <div
-            style={{ display: "flex", flexDirection: "column", gap: "10px" }}
-          >
-            {recentInventoryMovements.slice(0, 4).map((mov) => (
+
+          {/* Gráfica */}
+
+          {(() => {
+            const maxVal = Math.max(
+              ...movimientosChart.map((m) =>
+                Math.max(m.Entradas, m.Ajustes, m.Salidas),
+              ),
+              1,
+            );
+            const gridLines = [100, 75, 50, 25];
+
+            return (
               <div
-                key={mov.id}
                 style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  padding: "8px 12px",
-                  background: "#f9fafb",
-                  borderRadius: "8px",
+                  position: "relative",
+                  height: "160px",
+                  padding: "0 8px",
                 }}
               >
-                <div>
-                  <div style={{ fontSize: "13px", fontWeight: "500" }}>
-                    {mov.productNombre}
-                  </div>
-                  <div style={{ fontSize: "11px", color: "#9ca3af" }}>
-                    {mov.motivo}
-                  </div>
-                </div>
-                <div style={{ textAlign: "right" }}>
-                  <span
+                {/* Líneas horizontales */}
+                {gridLines.map((pct) => (
+                  <div
+                    key={pct}
                     style={{
-                      fontSize: "13px",
-                      fontWeight: "600",
-                      color:
-                        mov.tipo === "ENTRADA"
-                          ? "#15803d"
-                          : mov.tipo === "SALIDA"
-                            ? "#dc2626"
-                            : "#d97706",
+                      position: "absolute",
+                      left: 0,
+                      right: 0,
+                      top: `${100 - pct}%`,
+                      borderTop: "1px dashed #e5e7eb",
+                      display: "flex",
+                      alignItems: "center",
+                      zIndex: 0,
                     }}
                   >
-                    {mov.tipo === "ENTRADA"
-                      ? "+"
-                      : mov.tipo === "SALIDA"
-                        ? "-"
-                        : "~"}
-                    {mov.cantidad}
-                  </span>
-                  <div style={{ fontSize: "11px", color: "#9ca3af" }}>
-                    {timeAgo(mov.createdAt)}
+                    <span
+                      style={{
+                        fontSize: "9px",
+                        color: "#9ca3af",
+                        background: "white",
+                        paddingRight: "4px",
+                        marginLeft: "2px",
+                      }}
+                    >
+                      {Math.round((pct * maxVal) / 100)}
+                    </span>
                   </div>
+                ))}
+
+                {/* Barras */}
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "flex-end",
+                    gap: "6px",
+                    height: "100%",
+                    position: "relative",
+                    zIndex: 1,
+                  }}
+                >
+                  {movimientosChart.map((mov, i) => (
+                    <div
+                      key={i}
+                      style={{
+                        flex: 1,
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "center",
+                        gap: "3px",
+                        height: "100%",
+                      }}
+                    >
+                      <div
+                        style={{
+                          flex: 1,
+                          width: "60%",
+                          display: "flex",
+                          flexDirection: "column",
+                          justifyContent: "flex-end",
+                          gap: "2px",
+                        }}
+                      >
+                        {mov.Entradas > 0 && (
+                          <div
+                            style={{
+                              width: "100%",
+                              height: `${(mov.Entradas / maxVal) * 100}%`,
+                              minHeight: "4px",
+                              background: "#4ade80",
+                              borderRadius: "3px 3px 0 0",
+                            }}
+                            title={`Entradas: ${mov.Entradas}`}
+                          />
+                        )}
+                        {mov.Ajustes > 0 && (
+                          <div
+                            style={{
+                              width: "100%",
+                              height: `${(mov.Ajustes / maxVal) * 100}%`,
+                              minHeight: "4px",
+                              background: "#facc15",
+                              borderRadius: "3px 3px 0 0",
+                            }}
+                            title={`Ajustes: ${mov.Ajustes}`}
+                          />
+                        )}
+                        {mov.Salidas > 0 && (
+                          <div
+                            style={{
+                              width: "100%",
+                              height: `${(mov.Salidas / maxVal) * 100}%`,
+                              minHeight: "4px",
+                              background: "#f87171",
+                              borderRadius: "3px 3px 0 0",
+                            }}
+                            title={`Salidas: ${mov.Salidas}`}
+                          />
+                        )}
+                      </div>
+                      <span style={{ fontSize: "10px", color: "#9ca3af" }}>
+                        {mov.name}
+                      </span>
+                    </div>
+                  ))}
                 </div>
+              </div>
+            );
+          })()}
+
+          {/* Leyenda */}
+          <div style={{ display: "flex", gap: "16px", marginTop: "8px" }}>
+            {[
+              { color: "#4ade80", label: "Entradas" },
+              { color: "#f87171", label: "Salidas" },
+              { color: "#facc15", label: "Ajustes" },
+            ].map((item) => (
+              <div
+                key={item.label}
+                style={{ display: "flex", alignItems: "center", gap: "4px" }}
+              >
+                <div
+                  style={{
+                    width: "10px",
+                    height: "10px",
+                    borderRadius: "2px",
+                    background: item.color,
+                  }}
+                />
+                <span style={{ fontSize: "11px", color: "#6b7280" }}>
+                  {item.label}
+                </span>
               </div>
             ))}
           </div>
@@ -427,15 +556,15 @@ export default function Dashboard() {
               }}
             >
               <thead>
-                <tr style={{ borderBottom: "1px solid #e5e7eb" }}>
+                <tr style={{ background: "#fef9c3" }}>
                   {["Producto", "SKU", "Stock", "Estado"].map((h) => (
                     <th
                       key={h}
                       style={{
-                        padding: "6px 8px",
+                        padding: "8px",
                         textAlign: "left",
-                        fontSize: "11px",
-                        color: "#6b7280",
+                        fontSize: "12px",
+                        color: "#92400e",
                         fontWeight: "600",
                       }}
                     >
