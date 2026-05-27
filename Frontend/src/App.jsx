@@ -3,7 +3,6 @@ import PrivateRoute from "./routes/PrivateRoute";
 import AppLayout from "./components/layout/AppLayout";
 import ErrorBoundary from "./components/errors/ErrorBoundary";
 import Login from "./pages/Login";
-import Dashboard from "./pages/Dashboard";
 import Proveedores from "./pages/proveedores/Proveedores";
 import UserList from "./pages/users/UserList";
 import ClientList from "./pages/clients/ClientList";
@@ -14,6 +13,7 @@ import Unauthorized from "./pages/errors/Unauthorized";
 import Forbidden from "./pages/errors/Forbidden";
 import ProductList from "./pages/products/ProductsList";
 import AuditList from "./pages/audit/AuditList";
+import Dashboard from "./pages/Dashboard";
 
 export default function App() {
   return (
