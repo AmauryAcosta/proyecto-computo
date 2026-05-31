@@ -6,6 +6,9 @@ import Button from "../../components/ui/Button";
 import Input from "../../components/ui/Input";
 import Spinner from "../../components/ui/Spinner";
 import { useToast } from "../../components/ui/Toast";
+import PageHeader from "../../components/ui/PageHeader";
+import FilterBar from "../../components/ui/FilterBar";
+import { useIsMobile } from "../../hooks/useMediaQuery";
 
 const emptyForm = { nombre: "", rfc: "", email: "", telefono: "", direccion: "", contacto: "", tipo: "B2B", activo: true };
 
@@ -22,6 +25,7 @@ function Avatar({ nombre }) {
 
 export default function ClientList() {
   const toast = useToast();
+  const isMobile = useIsMobile(); 
   const [clients, setClients] = useState([]);
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
@@ -117,16 +121,6 @@ export default function ClientList() {
     }
   };
 
-  const handleToggle = async (client) => {
-    try {
-      await toggleClient(client.id, !client.activo);
-      toast(`Cliente ${client.activo ? "desactivado" : "activado"}`, "success");
-      fetchClients();
-    } catch {
-      toast("Error al cambiar estado", "error");
-    }
-  };
-
   const handleDelete = async (client) => {
     if (!confirm(`¿Eliminar a ${client.nombre}?`)) return;
     try {
@@ -148,8 +142,8 @@ export default function ClientList() {
         </div>
       )
     },
-    { key: "contacto", label: "Contacto", render: (row) => row.contacto || "—" },
-    { key: "email", label: "Email", render: (row) => row.email || "—" },
+    ...(!isMobile ? [{ key: "contacto", label: "Contacto", render: (row) => row.contacto || "—" }] : []),
+    ...(!isMobile ? [{ key: "email", label: "Email", render: (row) => row.email || "—" }] : []),
     {
       key: "tipo", label: "Tipo",
       render: (row) => (
@@ -183,53 +177,56 @@ export default function ClientList() {
 
   return (
     <div>
-      {/* Card stats */}
-      <div style={{ background: "linear-gradient(135deg, #1b4332, #2d6a4f)", borderRadius: "12px", padding: "20px 24px", display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px", color: "white" }}>
-        <div>
-          <h3 style={{ fontSize: "18px", fontWeight: "700", margin: 0 }}>Clientes ByteStore</h3>
-          <p style={{ fontSize: "13px", opacity: 0.8, margin: "4px 0 0" }}>{total} clientes registrados · empresas y consumidores finales</p>
-        </div>
-        <div style={{ display: "flex", gap: "12px" }}>
-          <div style={{ background: "rgba(255,255,255,0.15)", borderRadius: "8px", padding: "10px 20px", textAlign: "center" }}>
-            <div style={{ fontSize: "22px", fontWeight: "700" }}>{activos}</div>
-            <div style={{ fontSize: "11px", opacity: 0.8 }}>Activos</div>
-          </div>
-          <div style={{ background: "rgba(255,255,255,0.15)", borderRadius: "8px", padding: "10px 20px", textAlign: "center" }}>
-            <div style={{ fontSize: "22px", fontWeight: "700" }}>{inactivos}</div>
-            <div style={{ fontSize: "11px", opacity: 0.8 }}>Inactivos</div>
-          </div>
-        </div>
-      </div>
+      <PageHeader
+        title="Clientes ByteStore"
+        subtitle={`${total} clientes registrados · empresas y consumidores finales`}
+        stats={[
+          { value: activos,   label: "Activos"   },
+          { value: inactivos, label: "Inactivos" },
+        ]}
+      />
 
-      {/* Buscador + filtros */}
-      <div style={{ display: "flex", gap: "12px", alignItems: "center", marginBottom: "16px", flexWrap: "wrap" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: "8px", border: "1px solid #d1d5db", borderRadius: "8px", padding: "7px 12px", background: "white", flex: 1, minWidth: "160px" }}>
-          <span style={{ color: "#9ca3af" }}>🔍</span>
-          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Buscar cliente..." style={{ border: "none", outline: "none", fontSize: "13px", color: "#374151", width: "100%", background: "transparent" }} />
-        </div>
-        <select value={filterTipo} onChange={e => setFilterTipo(e.target.value)} style={selectStyle}>
-          <option value="">Todos los tipos</option>
-          <option value="B2B">B2B</option>
-          <option value="B2C">B2C</option>
-        </select>
-        <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} style={selectStyle}>
-          <option value="">Todos los estados</option>
-          <option value="true">Activo</option>
-          <option value="false">Inactivo</option>
-        </select>
-      </div>
+      <FilterBar
+        search={search}
+        onSearch={setSearch}
+        placeholder="Buscar cliente..."
+        filters={[
+          {
+            key: "tipo",
+            value: filterTipo,
+            onChange: setFilterTipo,
+            options: [
+              { label: "Todos los tipos", value: "" },
+              { label: "B2B", value: "B2B" },
+              { label: "B2C", value: "B2C" },
+            ]
+          },
+          {
+            key: "status",
+            value: filterStatus,
+            onChange: setFilterStatus,
+            options: [
+              { label: "Todos los estados", value: "" },
+              { label: "Activo",   value: "true"  },
+              { label: "Inactivo", value: "false" },
+            ]
+          },
+        ]}
+      />
 
-      {/* Tabla */}
       {loading ? (
         <div style={{ padding: "40px", display: "flex", justifyContent: "center" }}><Spinner /></div>
       ) : (
-        <Table columns={columns} data={filtered} />
+        <div style={{ overflowX: "auto" }}>
+          <Table columns={columns} data={filtered} />
+        </div>
       )}
 
-      {/* Paginación */}
       {totalPages > 1 && (
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "12px", padding: "0 4px" }}>
-          <span style={{ fontSize: "13px", color: "#40916c" }}>Mostrando {(page-1)*limit+1} - {Math.min(page*limit, total)} de {total} Clientes</span>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "12px", padding: "0 4px", flexWrap: "wrap", gap: "8px" }}>
+          <span style={{ fontSize: "13px", color: "#40916c" }}>
+            Mostrando {(page-1)*limit+1} - {Math.min(page*limit, total)} de {total} Clientes
+          </span>
           <div style={{ display: "flex", gap: "4px" }}>
             <button disabled={page===1} onClick={() => setPage(p=>p-1)} style={{ ...selectStyle, padding: "5px 10px" }}>‹</button>
             {Array.from({ length: totalPages }, (_, i) => (
@@ -240,20 +237,19 @@ export default function ClientList() {
         </div>
       )}
 
-      {/* Modal */}
       <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} title={editingClient ? "Editar Cliente - ByteStore" : "Nuevo Cliente - ByteStore"}>
         <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: "12px" }}>
             <Input label="Empresa / Persona *" name="nombre" value={form.nombre} onChange={f("nombre")} placeholder="Ej. TechSol S.A." error={formError.nombre} />
             <Input label="Contacto" name="contacto" value={form.contacto} onChange={f("contacto")} placeholder="Nombre del contacto" />
           </div>
           <Input label="Email" name="email" type="email" value={form.email} onChange={f("email")} placeholder="cliente@email.com" />
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: "12px" }}>
             <Input label="Teléfono" name="telefono" value={form.telefono} onChange={f("telefono")} placeholder="Ej. 477 123 4567" />
             <Input label="RFC" name="rfc" value={form.rfc} onChange={f("rfc")} placeholder="RFC" />
           </div>
           <Input label="Dirección" name="direccion" value={form.direccion} onChange={f("direccion")} placeholder="Dirección completa" />
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: "12px" }}>
             <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
               <label style={{ fontSize: "13px", fontWeight: "500", color: "#374151" }}>Tipo</label>
               <select value={form.tipo} onChange={f("tipo")} style={{ ...selectStyle, width: "100%" }}>

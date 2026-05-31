@@ -1,10 +1,10 @@
 import { useState, useEffect } from "react";
-import {
-  getSuppliers,
-  createSupplier,
-  updateSupplier,
-  toggleSupplier,
-  deleteSupplier,
+import { 
+  getSuppliers, 
+  createSupplier, 
+  updateSupplier, 
+  toggleSupplier, 
+  deleteSupplier, 
 } from "../../api/suppliers";
 import Table from "../../components/ui/Table";
 import Modal from "../../components/ui/Modal";
@@ -12,21 +12,26 @@ import Input from "../../components/ui/Input";
 import Button from "../../components/ui/Button";
 import Spinner from "../../components/ui/Spinner";
 import { useToast } from "../../components/ui/Toast";
+import PageHeader from "../../components/ui/PageHeader";
+import FilterBar from "../../components/ui/FilterBar";
+import { useIsMobile } from "../../hooks/useMediaQuery";
 
 const emptyForm = { nombre: "", email: "", rfc: "", telefono: "" };
 
 const selectStyle = {
-  border: "1px solid #d1d5db",
-  borderRadius: "8px",
+  border: "1px solid #d1d5db", 
+  borderRadius: "8px", 
   padding: "7px 12px",
-  fontSize: "13px",
-  color: "#374151",
-  backgroundColor: "white",
+  fontSize: "13px", 
+  color: "#374151", 
+  backgroundColor: "white", 
   cursor: "pointer",
 };
 
 export default function Proveedores() {
   const toast = useToast();
+  const isMobile = useIsMobile(); 
+
   const [suppliers, setSuppliers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
@@ -51,8 +56,8 @@ export default function Proveedores() {
     }
   };
 
-  useEffect(() => {
-    fetchSuppliers();
+  useEffect(() => { 
+    fetchSuppliers(); 
   }, [page]);
 
   useEffect(() => {
@@ -65,8 +70,8 @@ export default function Proveedores() {
   const inactivos = suppliers.filter((s) => !s.activo).length;
 
   const filtered = suppliers.filter((s) => {
-    const matchSearch =
-      !search ||
+    const matchSearch = 
+    !search ||
       s.nombre?.toLowerCase().includes(search.toLowerCase()) ||
       s.email?.toLowerCase().includes(search.toLowerCase()) ||
       s.rfc?.toLowerCase().includes(search.toLowerCase());
@@ -77,16 +82,16 @@ export default function Proveedores() {
   const handleOpen = (item = null) => {
     setEditItem(item);
     setForm(
-      item
-        ? {
-            nombre: item.nombre,
-            email: item.email,
-            rfc: item.rfc,
-            telefono: item.telefono,
-            activo: item.activo,
-          }
-        : emptyForm,
-    );
+      item 
+      ? {
+      nombre: item.nombre, 
+      email: item.email,
+      rfc: item.rfc, 
+      telefono: item.telefono, 
+      activo: item.activo,
+    } 
+    : emptyForm,
+  );
     setModalOpen(true);
   };
 
@@ -109,7 +114,6 @@ export default function Proveedores() {
       toast(err.response?.data?.message || "Error al guardar", "error");
     }
   };
-
   const handleToggle = async (supplier) => {
     try {
       await toggleSupplier(supplier.id);
@@ -136,38 +140,37 @@ export default function Proveedores() {
 
   const columns = [
     { key: "nombre", label: "Empresa" },
-    { key: "rfc", label: "RFC" },
+    ...(!isMobile ? [{ key: "rfc", label: "RFC" }] : []),
     { key: "email", label: "Email" },
-    { key: "telefono", label: "Teléfono" },
+    ...(!isMobile ? [{ key: "telefono", label: "Teléfono" }] : []),
     {
-      key: "activo",
-      label: "Estado",
+      key: "activo", label: "Estado",
       render: (row) => (
-        <span
-          style={{
-            padding: "2px 10px",
-            borderRadius: "999px",
-            fontSize: "12px",
-            fontWeight: "600",
-            background: row.activo ? "#dcfce7" : "#fee2e2",
-            color: row.activo ? "#15803d" : "#dc2626",
+        <span 
+        style={{ 
+          padding: "2px 10px", 
+          borderRadius: "999px", 
+          fontSize: "12px", 
+          fontWeight: "600", 
+          background: row.activo ? "#dcfce7" : "#fee2e2", 
+          color: row.activo ? "#15803d" : "#dc2626", 
           }}
-        >
+          >
           {row.activo ? "Activo" : "Inactivo"}
         </span>
       ),
     },
     {
-      key: "acciones",
+      key: "acciones", 
       label: "Acciones",
       render: (row) => (
         <div style={{ display: "flex", gap: "8px" }}>
           <Button variant="secondary" onClick={() => handleOpen(row)}>
             Editar
-          </Button>
+            </Button>
           <Button variant="danger" onClick={() => handleDelete(row)}>
             Eliminar
-          </Button>
+            </Button>
         </div>
       ),
     },
@@ -178,236 +181,162 @@ export default function Proveedores() {
 
   return (
     <div>
-      {/* Stats */}
-      <div
-        style={{
-          background: "linear-gradient(135deg, #1b4332, #2d6a4f)",
-          borderRadius: "12px",
-          padding: "20px 24px",
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          marginBottom: "20px",
-          color: "white",
-        }}
-      >
-        <div>
-          <h3 style={{ fontSize: "18px", fontWeight: "700", margin: 0 }}>
-            Proveedores de hardware
-          </h3>
-          <p style={{ fontSize: "13px", opacity: 0.8, margin: "4px 0 0" }}>
-            {total} proveedores registrados · {activos} activos · {inactivos}{" "}
-            inactivos
-          </p>
-        </div>
-        <div style={{ display: "flex", gap: "12px" }}>
-          <div
-            style={{
-              background: "rgba(255,255,255,0.15)",
-              borderRadius: "8px",
-              padding: "10px 20px",
-              textAlign: "center",
-            }}
-          >
-            <div style={{ fontSize: "22px", fontWeight: "700" }}>{activos}</div>
-            <div style={{ fontSize: "11px", opacity: 0.8 }}>Activos</div>
-          </div>
-          <div
-            style={{
-              background: "rgba(255,255,255,0.15)",
-              borderRadius: "8px",
-              padding: "10px 20px",
-              textAlign: "center",
-            }}
-          >
-            <div style={{ fontSize: "22px", fontWeight: "700" }}>
-              {inactivos}
-            </div>
-            <div style={{ fontSize: "11px", opacity: 0.8 }}>Inactivos</div>
-          </div>
-        </div>
-      </div>
+      <PageHeader
+        title="Proveedores de hardware"
+        subtitle={`${total} proveedores registrados · ${activos} activos · ${inactivos} inactivos`}
+        stats={[
+          { value: activos,   label: "Activos"   },
+          { value: inactivos, label: "Inactivos" },
+        ]}
+      />
+      <FilterBar
+        search={search}
+        onSearch={setSearch}
+        placeholder="Buscar proveedor..."
+        filters={[
+          {
+            key: "status",
+            value: filterStatus,
+            onChange: setFilterStatus,
+            options: [
+              { label: "Todos los estados", value: "" },
+              { label: "Activo", value: "true"  },
+              { label: "Inactivo", value: "false" },
+            ]
+          },
+        ]}
+      />
 
-      {/* Filtros */}
-      <div
-        style={{
-          display: "flex",
-          gap: "12px",
-          alignItems: "center",
-          marginBottom: "16px",
-          flexWrap: "wrap",
-        }}
-      >
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "8px",
-            border: "1px solid #d1d5db",
-            borderRadius: "8px",
-            padding: "7px 12px",
-            background: "white",
-            flex: 1,
-            minWidth: "160px",
-          }}
-        >
-          <span style={{ color: "#9ca3af" }}>🔍</span>
-          <input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Buscar proveedor..."
-            style={{
-              border: "none",
-              outline: "none",
-              fontSize: "13px",
-              color: "#374151",
-              width: "100%",
-              background: "transparent",
-            }}
-          />
-        </div>
-        <select
-          value={filterStatus}
-          onChange={(e) => setFilterStatus(e.target.value)}
-          style={selectStyle}
-        >
-          <option value="">Todos los estados</option>
-          <option value="true">Activo</option>
-          <option value="false">Inactivo</option>
-        </select>
-      </div>
-
-      {/* Tabla */}
       {loading ? (
-        <div
-          style={{ padding: "40px", display: "flex", justifyContent: "center" }}
+        <div 
+        style={{ padding: "40px", display: "flex", justifyContent: "center" }}
         >
           <Spinner />
-        </div>
+          </div>
       ) : (
-        <Table columns={columns} data={filtered} />
+        <div style={{ overflowX: "auto" }}>
+          <Table columns={columns} data={filtered} />
+        </div>
       )}
-
-      {/* Paginación */}
       {totalPages > 1 && (
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            marginTop: "12px",
+        <div 
+        style={{ 
+          display: "flex", 
+          justifyContent: "space-between", 
+          alignItems: "center", 
+          marginTop: "12px", 
+          flexWrap: "wrap", gap: "8px", 
           }}
-        >
+          >
           <span style={{ fontSize: "13px", color: "#40916c" }}>
-            Mostrando {(page - 1) * limit + 1} - {Math.min(page * limit, total)}{" "}
+            Mostrando {(page - 1) * limit + 1} - {Math.min(page * limit, total)} 
             de {total} proveedores
           </span>
           <div style={{ display: "flex", gap: "4px" }}>
-            <button
-              disabled={page === 1}
-              onClick={() => setPage((p) => p - 1)}
-              style={{ ...selectStyle, padding: "5px 10px" }}
+            <button 
+            disabled={page === 1} 
+            onClick={() => setPage((p) => p - 1)} 
+            style={{ ...selectStyle, padding: "5px 10px" }}
             >
               ‹
-            </button>
+              </button>
             {Array.from({ length: totalPages }, (_, i) => (
-              <button
-                key={i}
-                onClick={() => setPage(i + 1)}
-                style={{
-                  ...selectStyle,
-                  padding: "5px 10px",
-                  background: page === i + 1 ? "#1b4332" : "white",
-                  color: page === i + 1 ? "white" : "#374151",
-                }}
+              <button 
+              key={i} 
+              onClick={() => setPage(i + 1)} 
+              style={{ 
+                ...selectStyle, 
+              padding: "5px 10px", 
+              background: page === i + 1 ? "#1b4332" : "white", 
+              color: page === i + 1 ? "white" : "#374151", 
+              }}
               >
                 {i + 1}
               </button>
             ))}
-            <button
-              disabled={page === totalPages}
-              onClick={() => setPage((p) => p + 1)}
-              style={{ ...selectStyle, padding: "5px 10px" }}
+            <button 
+            disabled={page === totalPages} 
+            onClick={() => setPage((p) => p + 1)} 
+            style={{ ...selectStyle, padding: "5px 10px" }}
             >
               ›
-            </button>
+              </button>
           </div>
         </div>
       )}
 
-      {/* Modal */}
-      <Modal
-        isOpen={modalOpen}
-        onClose={() => setModalOpen(false)}
-        title={
-          editItem
-            ? "Editar Proveedor - ByteStore"
-            : "Nuevo Proveedor - ByteStore"
-        }
+      <Modal 
+      isOpen={modalOpen} 
+      onClose={() => setModalOpen(false)} 
+      title={
+        editItem 
+        ? "Editar Proveedor - ByteStore" 
+      : "Nuevo Proveedor - ByteStore"
+      }
       >
         <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "1fr 1fr",
-              gap: "12px",
+          <div 
+          style={{ 
+            display: "grid", 
+            gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", 
+            gap: "12px", 
             }}
-          >
-            <Input
-              label="Empresa"
-              value={form.nombre}
-              onChange={f("nombre")}
-              placeholder="HP Mexico"
+            >
+            <Input 
+            label="Empresa" 
+            value={form.nombre} 
+            onChange={f("nombre")} 
+            placeholder="HP Mexico" 
             />
-            <Input
-              label="RFC"
-              value={form.rfc}
-              onChange={f("rfc")}
-              placeholder="HPM88001012SX"
+            <Input 
+            label="RFC" 
+            value={form.rfc} 
+            onChange={f("rfc")} 
+            placeholder="HPM88001012SX" 
             />
           </div>
-          <Input
-            label="Email"
-            type="email"
-            value={form.email}
-            onChange={f("email")}
-            placeholder="ventas@empresa.com"
+          <Input 
+          label="Email" 
+          type="email" 
+          value={form.email} 
+          onChange={f("email")} 
+          placeholder="ventas@empresa.com" 
           />
-          <Input
-            label="Teléfono"
-            value={form.telefono}
-            onChange={f("telefono")}
-            placeholder="55-5000-0000"
+          <Input 
+          label="Teléfono" 
+          value={form.telefono} 
+          onChange={f("telefono")} 
+          placeholder="55-5000-0000" 
           />
           <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-            <label
-              style={{ fontSize: "13px", fontWeight: "500", color: "#374151" }}
+            <label 
+            style={{ fontSize: "13px", fontWeight: "500", color: "#374151" }}
             >
               Estado
-            </label>
-            <select
-              value={form.activo === undefined ? "" : String(form.activo)}
-              onChange={(e) =>
-                setForm({ ...form, activo: e.target.value === "true" })
-              }
-              style={{ ...selectStyle, width: "100%" }}
+              </label>
+            <select 
+            value={form.activo === undefined ? "" : String(form.activo)} 
+            onChange={(e) => 
+            setForm({ ...form, activo: e.target.value === "true" })
+          } 
+            style={{ ...selectStyle, width: "100%" }}
             >
               <option value="">Seleccionar estado</option>
               <option value="true">Activo</option>
               <option value="false">Inactivo</option>
             </select>
           </div>
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "flex-end",
-              gap: "8px",
-              marginTop: "8px",
+          <div 
+          style={{ 
+            display: "flex", 
+            justifyContent: "flex-end", 
+            gap: "8px", 
+            marginTop: "8px", 
             }}
-          >
+            >
             <Button variant="secondary" onClick={() => setModalOpen(false)}>
               CANCELAR
-            </Button>
+              </Button>
             <Button onClick={handleSave}>
               {editItem ? "ACTUALIZAR" : "Crear Proveedor"}
             </Button>

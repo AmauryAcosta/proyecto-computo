@@ -6,6 +6,9 @@ import Input from "../../components/ui/Input";
 import Spinner from "../../components/ui/Spinner";
 import Table from "../../components/ui/Table";
 import { useToast } from "../../components/ui/Toast";
+import PageHeader from "../../components/ui/PageHeader";
+import FilterBar from "../../components/ui/FilterBar";
+import { useIsMobile } from "../../hooks/useMediaQuery";
 
 const emptyForm = { tipo: "ENTRADA", cantidad: 1, motivo: "" };
 
@@ -27,6 +30,7 @@ function StockBar({ cantidad, minimo }) {
 
 export default function InventoryList() {
   const toast = useToast();
+  const isMobile = useIsMobile();
   const [inventory, setInventory] = useState([]);
   const [movements, setMovements] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -139,25 +143,15 @@ export default function InventoryList() {
 
   return (
     <div>
-      {/* Card stats */}
-      <div style={{ background: "linear-gradient(135deg, #1b4332, #2d6a4f)", borderRadius: "12px", padding: "20px 24px", display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px", color: "white" }}>
-        <div>
-          <h3 style={{ fontSize: "18px", fontWeight: "700", margin: 0 }}>Stock actual - ByteStore</h3>
-          <p style={{ fontSize: "13px", opacity: 0.8, margin: "4px 0 0" }}>{total} productos · {alertas} con stock crítico o bajo</p>
-        </div>
-        <div style={{ display: "flex", gap: "12px" }}>
-          <div style={{ background: "rgba(255,255,255,0.15)", borderRadius: "8px", padding: "10px 20px", textAlign: "center" }}>
-            <div style={{ fontSize: "22px", fontWeight: "700", color: alertas > 0 ? "#fca5a5" : "white" }}>{alertas}</div>
-            <div style={{ fontSize: "11px", opacity: 0.8 }}>Alertas</div>
-          </div>
-          <div style={{ background: "rgba(255,255,255,0.15)", borderRadius: "8px", padding: "10px 20px", textAlign: "center" }}>
-            <div style={{ fontSize: "22px", fontWeight: "700" }}>{totalUnidades}</div>
-            <div style={{ fontSize: "11px", opacity: 0.8 }}>Unidades Totales</div>
-          </div>
-        </div>
-      </div>
+      <PageHeader
+        title="Stock actual - ByteStore"
+        subtitle={`${total} productos · ${alertas} con stock crítico o bajo`}
+        stats={[
+          { value: alertas,       label: "Alertas",         danger: alertas > 0 },
+          { value: totalUnidades, label: "Unidades Totales" },
+        ]}
+      />
 
-      {/* Buscador */}
       <div style={{ marginBottom: "16px" }}>
         <div style={{ display: "flex", alignItems: "center", gap: "8px", border: "1px solid #d1d5db", borderRadius: "8px", padding: "7px 12px", background: "white", maxWidth: "320px" }}>
           <span style={{ color: "#9ca3af" }}>🔍</span>
@@ -165,7 +159,6 @@ export default function InventoryList() {
         </div>
       </div>
 
-      {/* Cards de productos */}
       {loading ? (
         <div style={{ padding: "40px", display: "flex", justifyContent: "center" }}><Spinner /></div>
       ) : (
@@ -189,9 +182,8 @@ export default function InventoryList() {
         </div>
       )}
 
-      {/* Paginación */}
       {Math.ceil(total / limit) > 1 && (
-        <div style={{ display: "flex", justifyContent: "center", gap: "4px", marginBottom: "32px" }}>
+        <div style={{ display: "flex", justifyContent: "center", gap: "4px", marginBottom: "32px", flexWrap: "wrap" }}>
           <button disabled={page===1} onClick={() => setPage(p=>p-1)} style={{ ...selectStyle, padding: "5px 10px" }}>‹</button>
           {Array.from({ length: Math.ceil(total/limit) }, (_, i) => (
             <button key={i} onClick={() => setPage(i+1)} style={{ ...selectStyle, padding: "5px 10px", background: page===i+1 ? "#1b4332" : "white", color: page===i+1 ? "white" : "#374151" }}>{i+1}</button>
@@ -200,14 +192,16 @@ export default function InventoryList() {
         </div>
       )}
 
-      {/* Últimos movimientos */}
       <div>
         <h3 style={{ fontSize: "16px", fontWeight: "700", color: "#111827", margin: "0 0 4px" }}>Últimos movimientos</h3>
         <p style={{ fontSize: "13px", color: "#9ca3af", margin: "0 0 12px" }}>Entradas, salidas y ajustes</p>
-        {loadingMov ? <Spinner /> : <Table columns={movColumns} data={movements} />}
+        {loadingMov ? <Spinner /> : (
+          <div style={{ overflowX: "auto" }}>
+            <Table columns={movColumns} data={movements} />
+          </div>
+        )}
       </div>
 
-      {/* Modal ajuste */}
       <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} title="Ajustar Stock - ByteStore">
         <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
           {!selectedProduct && (
