@@ -21,7 +21,7 @@ export const updateRecepcion = async (id, recepcionData) => {
 };
 
 export const confirmRecepcion = async (id) => {
-  const { data } = await api.post(`/recepciones/${id}/confirm`);
+  const { data } = await api.patch(`/recepciones/${id}/confirm`);
   return data.item;
 };
 

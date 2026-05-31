@@ -15,6 +15,7 @@ import { useToast } from "../../components/ui/Toast";
 import PageHeader from "../../components/ui/PageHeader";
 import FilterBar from "../../components/ui/FilterBar";
 import { useIsMobile } from "../../hooks/useMediaQuery";
+import { getSuppliers } from "../../api/suppliers";
 
 const emptyForm = {
   nombre: "",
@@ -60,7 +61,6 @@ export default function ProductList() {
 
   const limit = 10;
 
-  // FIX: useCallback para poder reusar fetchProducts en handlers sin warnings
   const fetchProducts = useCallback(async () => {
     setLoading(true);
     try {
@@ -74,10 +74,16 @@ export default function ProductList() {
     }
   }, [page, toast]);
 
-  // FIX: fetchProducts ahora está en las dependencias correctamente
-  useEffect(() => {
-    fetchProducts();
-  }, [fetchProducts]);
+  useEffect(
+    () => {
+      fetchProducts();
+      getSuppliers(1, 100)
+        .then((r) => setSuppliers(r.items))
+        .catch(() => {});
+    },
+    [fetchProducts],
+    [page],
+  );
 
   const handleOpen = (item = null) => {
     setEditItem(item);
@@ -101,6 +107,8 @@ export default function ProductList() {
     );
     setModalOpen(true);
   };
+
+  const [suppliers, setSuppliers] = useState([]);
 
   useEffect(() => {
     const handler = () => handleOpen();
@@ -191,17 +199,13 @@ export default function ProductList() {
       key: "sku",
       label: "SKU",
       render: (row) => (
-        <span style={{ color: "#6b7280", fontSize: "13px" }}>
-          {row.sku}
-        </span>
+        <span style={{ color: "#6b7280", fontSize: "13px" }}>{row.sku}</span>
       ),
     },
     {
       key: "nombre",
       label: "Producto",
-      render: (row) => (
-        <span style={{ fontWeight: "500" }}>{row.nombre}</span>
-      ),
+      render: (row) => <span style={{ fontWeight: "500" }}>{row.nombre}</span>,
     },
     ...(!isMobile
       ? [
@@ -230,8 +234,7 @@ export default function ProductList() {
           {
             key: "precioVenta",
             label: "Precio",
-            render: (row) =>
-              `$${Number(row.precioVenta).toLocaleString()}`,
+            render: (row) => `$${Number(row.precioVenta).toLocaleString()}`,
           },
         ]
       : []),
@@ -326,7 +329,9 @@ export default function ProductList() {
       />
 
       {loading ? (
-        <div style={{ padding: "40px", display: "flex", justifyContent: "center" }}>
+        <div
+          style={{ padding: "40px", display: "flex", justifyContent: "center" }}
+        >
           <Spinner />
         </div>
       ) : (
@@ -347,8 +352,8 @@ export default function ProductList() {
           }}
         >
           <span style={{ fontSize: "13px", color: "#40916c" }}>
-            Mostrando {(page - 1) * limit + 1} –{" "}
-            {Math.min(page * limit, total)} de {total} Productos
+            Mostrando {(page - 1) * limit + 1} – {Math.min(page * limit, total)}{" "}
+            de {total} Productos
           </span>
 
           <div style={{ display: "flex", gap: "4px" }}>
@@ -389,7 +394,11 @@ export default function ProductList() {
       <Modal
         isOpen={modalOpen}
         onClose={() => setModalOpen(false)}
-        title={editItem ? "Editar Producto - ByteStore" : "Nuevo Producto - ByteStore"}
+        title={
+          editItem
+            ? "Editar Producto - ByteStore"
+            : "Nuevo Producto - ByteStore"
+        }
       >
         <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
           <div
@@ -422,12 +431,31 @@ export default function ProductList() {
               gap: "12px",
             }}
           >
-            <Input
-              label="Marca"
-              value={form.marca}
-              onChange={f("marca")}
-              placeholder="ej. HP"
-            />
+            <div
+              style={{ display: "flex", flexDirection: "column", gap: "4px" }}
+            >
+              <label
+                style={{
+                  fontSize: "13px",
+                  fontWeight: "500",
+                  color: "#374151",
+                }}
+              >
+                Proveedor / Marca
+              </label>
+              <select
+                value={form.marca}
+                onChange={f("marca")}
+                style={{ ...selectStyle, width: "100%" }}
+              >
+                <option value="">Seleccionar proveedor</option>
+                {suppliers.map((s) => (
+                  <option key={s.id} value={s.nombre}>
+                    {s.nombre}
+                  </option>
+                ))}
+              </select>
+            </div>
             <Input
               label="Modelo"
               value={form.modelo}
@@ -437,7 +465,9 @@ export default function ProductList() {
           </div>
 
           <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-            <label style={{ fontSize: "13px", fontWeight: "500", color: "#374151" }}>
+            <label
+              style={{ fontSize: "13px", fontWeight: "500", color: "#374151" }}
+            >
               Categoría
             </label>
             <select
@@ -523,7 +553,9 @@ export default function ProductList() {
           </div>
 
           <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-            <label style={{ fontSize: "13px", fontWeight: "500", color: "#374151" }}>
+            <label
+              style={{ fontSize: "13px", fontWeight: "500", color: "#374151" }}
+            >
               Estado
             </label>
             <select
