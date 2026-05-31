@@ -21,17 +21,22 @@ export default function Login() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
     if (!form.usuario || !form.password) {
       setError("Completa todos los campos");
       return;
     }
+
     try {
       const data = await loginRequest(form.usuario, form.password);
+
       login({ usuario: form.usuario }, data.token);
+
       navigate("/dashboard");
     } catch (err) {
       setError(
-        err.response?.data?.message || "Usuario o contraseña incorrectos",
+        err.response?.data?.message ||
+          "Usuario o contraseña incorrectos"
       );
     }
   };
@@ -40,28 +45,47 @@ export default function Login() {
     <div
       style={{
         minHeight: "100vh",
+        width: "100%",
         display: "flex",
-        alignItems: "center",
         justifyContent: "center",
+        alignItems: "center",
         position: "relative",
+        overflow: "hidden",
+        padding: "20px",
       }}
     >
+      {/* Fondo */}
       <div
         style={{
-          position: "absolute",
-          inset: 0,
+          position: "fixed",
+          top: 0,
+          left: 0,
+          width: "100vw",
+          height: "100vh",
           backgroundImage: "url('/bg-login.jpg')",
           backgroundSize: "cover",
           backgroundPosition: "center",
-          opacity: 0.9,
-          zIndex: 0,
+          backgroundRepeat: "no-repeat",
+          zIndex: -2,
         }}
       />
 
+      {/* Capa oscura opcional */}
       <div
         style={{
-          position: "relative",
-          zIndex: 1,
+          position: "fixed",
+          top: 0,
+          left: 0,
+          width: "100vw",
+          height: "100vh",
+          backgroundColor: "rgba(0,0,0,0.15)",
+          zIndex: -1,
+        }}
+      />
+
+      {/* Card Login */}
+      <div
+        style={{
           backgroundColor: "#F3F2F7",
           borderRadius: "16px",
           boxShadow: "0 8px 32px rgba(0,0,0,0.3)",
@@ -70,6 +94,7 @@ export default function Login() {
           maxWidth: "380px",
         }}
       >
+        {/* Logo */}
         <div
           style={{
             display: "flex",
@@ -80,7 +105,12 @@ export default function Login() {
           <img
             src="/logo.png"
             alt="ByteStore logo"
-            style={{ width: "340px" }}
+            style={{
+              width: "100%",
+              maxWidth: "280px",
+              height: "auto",
+              objectFit: "contain",
+            }}
           />
         </div>
 
@@ -102,14 +132,23 @@ export default function Login() {
 
         <form
           onSubmit={handleSubmit}
-          style={{ display: "flex", flexDirection: "column", gap: "14px" }}
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: "14px",
+          }}
         >
           <div>
             <label
-              style={{ fontSize: "13px", fontWeight: "500", color: labelColor }}
+              style={{
+                fontSize: "13px",
+                fontWeight: "500",
+                color: labelColor,
+              }}
             >
               Usuario
             </label>
+
             <input
               type="text"
               name="usuario"
@@ -117,22 +156,29 @@ export default function Login() {
               onChange={handleChange}
               placeholder="usuario"
               style={{
+                width: "100%",
+                marginTop: "4px",
                 border: "1px solid #d1d5db",
                 borderRadius: "8px",
-                padding: "9px 12px",
+                padding: "10px 12px",
                 fontSize: "14px",
-                width: "100%",
                 backgroundColor: "#F3F2F7",
+                boxSizing: "border-box",
               }}
             />
           </div>
 
           <div>
             <label
-              style={{ fontSize: "13px", fontWeight: "500", color: labelColor }}
+              style={{
+                fontSize: "13px",
+                fontWeight: "500",
+                color: labelColor,
+              }}
             >
               Contraseña
             </label>
+
             <input
               type="password"
               name="password"
@@ -140,12 +186,14 @@ export default function Login() {
               onChange={handleChange}
               placeholder="••••••••"
               style={{
+                width: "100%",
+                marginTop: "4px",
                 border: "1px solid #d1d5db",
                 borderRadius: "8px",
-                padding: "9px 12px",
+                padding: "10px 12px",
                 fontSize: "14px",
-                width: "100%",
                 backgroundColor: "#F3F2F7",
+                boxSizing: "border-box",
               }}
             />
           </div>
@@ -165,6 +213,7 @@ export default function Login() {
               fontWeight: "600",
               cursor: loading ? "not-allowed" : "pointer",
               opacity: loading ? 0.6 : 1,
+              transition: "all 0.2s ease",
             }}
           >
             {loading ? "Ingresando..." : "Iniciar Sesión"}
