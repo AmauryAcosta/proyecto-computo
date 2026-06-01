@@ -25,9 +25,8 @@ api.interceptors.response.use(
       window.location.href = "/login";
     }
 
-    if (status === 403) {
-      // Sin permisos
-      window.location.href = "/forbidden";
+    if (status === 403 && (url === "/users/me" || url === "/auth/me")) {
+      window.location.href = "/403";
     }
 
     return Promise.reject(error);

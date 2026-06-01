@@ -79,7 +79,7 @@ export default function ProductList() {
       fetchProducts();
       getSuppliers(1, 100)
         .then((r) => setSuppliers(r.items))
-        .catch(() => {});
+        .catch(() => setSuppliers([]));
     },
     [fetchProducts],
     [page],

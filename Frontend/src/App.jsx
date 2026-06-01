@@ -14,6 +14,7 @@ import Forbidden from "./pages/errors/Forbidden";
 import ProductList from "./pages/products/ProductsList";
 import AuditList from "./pages/audit/AuditList";
 import Dashboard from "./pages/Dashboard";
+import PermissionRoute from "./routes/PermissionRoute";
 
 export default function App() {
   return (
@@ -31,27 +32,34 @@ export default function App() {
           <Route element={<PrivateRoute />}>
             <Route element={<AppLayout />}>
               <Route path="/dashboard" element={<Dashboard />} />
-              <Route path="/usuarios" element={<UserList />} />
-              <Route path="/clientes" element={<ClientList />} />
-              <Route path="/proveedores" element={<Proveedores />} />
-              <Route path="/productos" element={<ProductList />} />
-              <Route
-                path="/inventario"
-                element={
-                  <div>
-                    <InventoryList />
-                  </div>
-                }
-              />
-              <Route
-                path="/recepciones"
-                element={
-                  <div>
-                    <Recepciones />
-                  </div>
-                }
-              />
-              <Route path="/auditoria" element={<AuditList />} />
+
+              <Route element={<PermissionRoute permiso="users:read" />}>
+                <Route path="/usuarios" element={<UserList />} />
+              </Route>
+
+              <Route element={<PermissionRoute permiso="clients:read" />}>
+                <Route path="/clientes" element={<ClientList />} />
+              </Route>
+
+              <Route element={<PermissionRoute permiso="suppliers:read" />}>
+                <Route path="/proveedores" element={<Proveedores />} />
+              </Route>
+
+              <Route element={<PermissionRoute permiso="products:read" />}>
+                <Route path="/productos" element={<ProductList />} />
+              </Route>
+
+              <Route element={<PermissionRoute permiso="inventory:read" />}>
+                <Route path="/inventario" element={<InventoryList />} />
+              </Route>
+
+              <Route element={<PermissionRoute permiso="recepciones:read" />}>
+                <Route path="/recepciones" element={<Recepciones />} />
+              </Route>
+
+              <Route element={<PermissionRoute permiso="audit:read" />}>
+                <Route path="/auditoria" element={<AuditList />} />
+              </Route>
             </Route>
           </Route>
 
